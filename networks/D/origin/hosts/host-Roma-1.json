@@ -1,0 +1,1 @@
+{"hostname": "host-Roma-1", "hostInterfaces": {"eth0": {"name": "eth0", "prefix": "91.15.0.5/30", "gateway": "91.15.0.6"}}}

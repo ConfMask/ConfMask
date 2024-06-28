@@ -1,0 +1,11 @@
+.*/
+__*/
+*.egg-info/
+build/
+
+# Networks
+networks/*/*
+!networks/*/origin*
+
+# Experiment results
+experiments/results/

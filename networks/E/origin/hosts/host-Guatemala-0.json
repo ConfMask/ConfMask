@@ -1,0 +1,1 @@
+{"hostname": "host-Guatemala-0", "hostInterfaces": {"eth0": {"name": "eth0", "prefix": "91.16.0.1/30", "gateway": "91.16.0.2"}}}
