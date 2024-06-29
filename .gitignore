@@ -5,7 +5,8 @@ build/
 
 # Networks
 networks/*/*
-!networks/*/origin*
+!networks/*/origin
+!networks/*/nethide
 
 # Experiment results
 experiments/results/
