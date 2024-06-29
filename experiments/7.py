@@ -3,10 +3,10 @@ Minimum number of nodes of the same degree in all networks.
 """
 
 import json
-from collections import Counter
 
 import click
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 from confmask.utils import analyze_topology
 from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
@@ -33,14 +33,14 @@ def run_network(name, target, progress, task):
         topology = bf.q.layer3Edges().answer().frame()
         _phase(f"[{prefix}] Processing...")
         _, _, _, _, _, nx_graph = analyze_topology(topology)
-        return Counter(d for _, d in nx_graph.degree()).most_common()[-1]
+        return nx.average_clustering(nx_graph)
 
-    _, cnt_origin = _get_least_anonymized(ORIGIN_NAME, "Original")
-    _, cnt_target = _get_least_anonymized(target, "Anonymized")
+    coef_origin = _get_least_anonymized(ORIGIN_NAME, "Original")
+    coef_target = _get_least_anonymized(target, "Anonymized")
 
-    _phase(f"[green]Done[/green] | {cnt_origin} -> {cnt_target}")
+    _phase(f"[green]Done[/green] | {coef_origin:.3f} -> {coef_target:.3f}")
     progress.stop_task(task)
-    return cnt_origin, cnt_target
+    return coef_origin, coef_target
 
 
 @click.command()
@@ -81,7 +81,7 @@ def main(networks, kr, kh, seed, plot_only):
 
     # Merge results with existing (if any)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    results_file = RESULTS_DIR / f"6-{target}.json"
+    results_file = RESULTS_DIR / f"7-{target}.json"
     all_results = {}
     if results_file.exists():
         with results_file.open("r", encoding="utf-8") as f:
@@ -98,11 +98,12 @@ def main(networks, kr, kh, seed, plot_only):
         plt.figure()
         plt.bar(x, [v for _, (v, _) in all_results], width, label="Original")
         plt.bar(x + width, [v for _, (_, v) in all_results], width, label="Anonymized")
-        plt.ylabel("Min # of same-degree nodes")
+        plt.ylabel("Clustering coefficient")
+        plt.ylim(0, 1)
         plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])
-        plt.legend(loc="upper left")
+        plt.legend(loc="upper right")
         plt.tight_layout()
-        plt.savefig(RESULTS_DIR / f"6-{target}.png")
+        plt.savefig(RESULTS_DIR / f"7-{target}.png")
         plt.show()
 
 

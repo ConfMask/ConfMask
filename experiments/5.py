@@ -25,7 +25,7 @@ def run_network(name, target, progress, task):
     def _phase(description):
         progress.update(task, description=f"[{name}] {description}")
 
-    _phase("Uploading configurations")
+    _phase("Uploading configurations...")
     bf.set_network(name)
     bf.init_snapshot(str(NETWORKS_DIR / name / target), name=target, overwrite=True)
     _phase("Querying topology...")

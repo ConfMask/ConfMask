@@ -9,7 +9,7 @@ import networkx as nx
 
 def analyze_topology(topology):
     """Obtain information about the underlying graph from network topology.
-    
+
     Parameters
     ----------
     topology : pd.DataFrame

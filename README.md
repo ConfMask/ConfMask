@@ -78,13 +78,13 @@ python experiments/5.py --kr 6 --kh 2 --seed 0
 ### Figure 6
 
 ```bash
-python experiments/6.py --kr 6 --kh 2  # TODO
+python experiments/6.py --kr 6 --kh 2 --seed 0
 ```
 
 ### Figure 7
 
 ```bash
-python experiments/7.py --kr 6 --kh 2  # TODO
+python experiments/7.py --kr 6 --kh 2 --seed 0
 ```
 
 ### Figure 8

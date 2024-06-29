@@ -9,3 +9,4 @@ python .\experiments\gen.py --kr 6 --kh 2 --seed 0 -n H
 
 python .\experiments\5.py --kr 6 --kh 2 --seed 0
 python .\experiments\6.py --kr 6 --kh 2 --seed 0
+python .\experiments\7.py --kr 6 --kh 2 --seed 0

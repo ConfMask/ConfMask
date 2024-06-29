@@ -3,7 +3,6 @@ import shutil
 from collections import defaultdict
 
 import click
-import networkx as nx
 import numpy as np
 import pandas as pd
 from confmask.ip import generate_unicast_ip
