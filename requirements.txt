@@ -1,8 +1,10 @@
+click
 gurobipy==11.0.2
-joblib==1.4.2
-levenshtein==0.25.1
-matplotlib==3.9.0
+joblib
+levenshtein
+matplotlib
 networkx==3.3
 numpy==2.0.0
 pybatfish==2023.12.16.1270
-setuptools==70.0.0
+rich
+setuptools

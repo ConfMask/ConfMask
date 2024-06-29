@@ -8,6 +8,11 @@ Yuejie Wang, Qiutong Men, Yao Xiao, Yongting Chen, and Guyue Liu. 2024. ConfMask
 
 ## Setup
 
+Make sure the following are available:
+
+- Docker
+- Python (>=3.9)
+
 Create a virtual environment:
 
 ```bash
@@ -38,6 +43,7 @@ not want to start over.
 > [!NOTE]
 > - Use the `--help` option on each script to see available options (including available network names).
 > - Each evaluation script saves/updates the results in the corresponding JSON file, in addition to producing the plots. Hence, the `--plot-only` option can be used to generate the plots from the existing results without re-running the experiments.
+> - The layout of the generated plots may be different from the paper, but they convey essentially the same information.
 
 ### Generate anonymized networks
 

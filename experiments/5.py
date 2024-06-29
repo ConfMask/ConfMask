@@ -88,7 +88,7 @@ def run_network(name, target, progress, task):
         delayed(trace_from)(src_gw, dst_gw) for src_gw, dst_gw in gw_pairs
     )
     result = sum(all_num_paths) / len(all_num_paths)
-    _phase(description=f"[green]Done[/green] | {result=:.3f}")
+    _phase(f"[green]Done[/green] | {result=:.3f}")
     progress.stop_task(task)
     return result
 
@@ -143,9 +143,10 @@ def main(networks, kr, kh, seed, plot_only):
 
     # Plot the graph
     if len(all_results) > 0:
+        all_results = sorted(all_results.items())
         plt.figure()
-        plt.bar([f"Net{name}" for name in all_results], all_results.values())
-        plt.ylabel("# of paths")
+        plt.bar([f"Net{k}" for k, _ in all_results], [v for _, v in all_results])
+        plt.ylabel("Avg # of distinct paths between edge routers")
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"5-{target}.png")
         plt.show()

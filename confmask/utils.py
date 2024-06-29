@@ -2,28 +2,50 @@
 TODO
 """
 
+from collections import defaultdict
+
 import networkx as nx
 
 
-def generate_gateways(topology):
-    """Generate gateways and gateway interfaces from network topology."""
-    gws, gw_interfaces = {}, {}
-    for _, row in topology.iterrows():
-        src_node = row["Interface"].hostname
-        if "host" in src_node:
-            gws[src_node] = row["Remote_Interface"].hostname
-            gw_interfaces[src_node] = row["Remote_Interface"].interface
-    return gws, gw_interfaces
+def analyze_topology(topology):
+    """Obtain information about the underlying graph from network topology.
+    
+    Parameters
+    ----------
+    topology : pd.DataFrame
+        Network topology dataframe obtained from Batfish.
 
+    Returns
+    -------
+    R : set
+        Set of routers in the network.
+    H : set
+        Set of hosts in the network.
+    E_R : dict
+        Dictionary of router neighbors.
+    E_H : dict
+        Dictionary of host neighbors.
+    E : dict
+        Dictionary of all neighbors.
+    nx_graph : nx.Graph
+        NetworkX graph object.
+    """
+    E = defaultdict(list)
+    for row in topology.itertuples(index=False):
+        E[row.Interface.hostname].append(row.Remote_Interface.hostname)
+    H = set(h for h, neighbors in E.items() if len(neighbors) == 1 and "host" in h)
+    R = set(E) - H
+    E_R, E_H = {}, {}
+    for node, neighbors in E.items():
+        if node in H:
+            E_H[node] = neighbors
+        else:
+            E_R[node] = [r for r in neighbors if r in R]
 
-def generate_graph(topology):
-    """Generate the underlying graph of the network topology."""
-    graph = nx.Graph()
+    # Reconstruct the graph
+    nx_graph = nx.Graph()
+    for i, neighbors in E_R.items():
+        for j in neighbors:
+            nx_graph.add_edge(i, j)
 
-    # Bidirectional edges are automatically deduplicated in undirected graphs
-    for _, row in topology.items():
-        src_node, dst_node = row["Interface"].hostname, row["Remote_Interface"].hostname
-        if "host" in src_node or "host" in dst_node:
-            continue
-        graph.add_edge(src_node, dst_node)
-    return graph
+    return R, H, E_R, E_H, E, nx_graph

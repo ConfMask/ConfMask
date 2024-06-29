@@ -9,6 +9,7 @@ import pandas as pd
 from confmask.ip import generate_unicast_ip
 from confmask.parser import HostConfigFile, RouterConfigFile
 from confmask.topology import k_degree_anonymization
+from confmask.utils import analyze_topology
 from joblib import Parallel, delayed
 from rich.progress import Progress, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session
@@ -22,7 +23,6 @@ from config import (
     ROUTERS_SUBDIR,
     HOSTS_SUBDIR,
 )
-
 
 bf = Session(host="localhost")
 
@@ -63,18 +63,8 @@ def run_network(network, kr, kh, seed, progress, task):
     LB = bf.q.interfaceProperties().answer().frame()
     _phase("Processing...")
 
-    # Edges
-    E = defaultdict(list)  # Maps node -> neighbors
-    for row in T.itertuples(index=False):
-        E[row.Interface.hostname].append(row.Remote_Interface.hostname)
-    H = set(h for h, neighbors in E.items() if len(neighbors) == 1 and "host" in h)
-    R = set(E) - H
-    E_R, E_H = {}, {}
-    for node, neighbors in E.items():
-        if node in H:
-            E_H[node] = neighbors
-        else:
-            E_R[node] = [r for r in neighbors if r in R]
+    # Analyze topology
+    R, _, _, E_H, _, nx_graph = analyze_topology(T)
 
     # Parse router configurations
     R_map = {}  # Maps router name -> (config file path, config object)
@@ -93,10 +83,6 @@ def run_network(network, kr, kh, seed, progress, task):
     # Anonymize network topology; NOTE: Prefer `k_degree_anonymization` for smaller
     # graphs and `fast_k_degree_anonymization` for larger graphs
     _phase("Anonymizing network topology...")
-    nx_graph = nx.Graph()
-    for i, neighbors in E_R.items():
-        for j in neighbors:
-            nx_graph.add_edge(i, j)
     _, new_edges = k_degree_anonymization(nx_graph, kr, rng)
 
     # For OSPF networks, compute the costs
