@@ -5,7 +5,7 @@ build/
 
 # Networks
 networks/*/*
-!networks/*/origin
+!networks/*/origin/{configs|hosts}
 !networks/*/nethide
 
 # Experiment results
