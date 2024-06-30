@@ -15,6 +15,7 @@ from pybatfish.datamodel.flow import HeaderConstraints
 
 from config import NETWORKS_DIR, CONFMASK_NAME, RESULTS_DIR
 
+SUPPORTED_NETWORKS = "ABCDEFGH"
 bf = Session(host="localhost")
 
 
@@ -48,7 +49,7 @@ def run_network(name, target, progress, task):
         if "host" in dst_node:
             host_ips[dst_node] = row.Remote_IPs[0]
 
-    def trace_from(src_gw, dst_gw):
+    def _trace(src_gw, dst_gw):
         """Trace routes between two gateways."""
         paths_mem = set()
 
@@ -78,15 +79,16 @@ def run_network(name, target, progress, task):
                 path = trace_route.Traces[0][0]
                 paths_mem.add("->".join(hop.node for hop in path.hops[:-1]))
 
-        progress.update(task, advance=1)
         return len(paths_mem)
 
-    gw_pairs = list(permutations(gw_nodes, 2))
+    gw_pairs, all_num_paths = list(permutations(gw_nodes, 2)), []
     progress.update(task, total=len(gw_pairs))
+    for num in Parallel(n_jobs=-1, prefer="threads", return_as="generator_unordered")(
+        delayed(_trace)(src_gw, dst_gw) for src_gw, dst_gw in gw_pairs
+    ):
+        all_num_paths.append(num)
+        progress.update(task, advance=1)
 
-    all_num_paths = Parallel(n_jobs=-1, prefer="threads")(
-        delayed(trace_from)(src_gw, dst_gw) for src_gw, dst_gw in gw_pairs
-    )
     result = sum(all_num_paths) / len(all_num_paths)
     _phase(f"[green]Done[/green] | {result=:.3f}")
     progress.stop_task(task)
@@ -98,7 +100,7 @@ def run_network(name, target, progress, task):
     "-n",
     "--networks",
     type=str,
-    default="ABCDEFGH",
+    default=SUPPORTED_NETWORKS,
     show_default=True,
     help="Networks to evaluate.",
 )
@@ -113,7 +115,7 @@ def run_network(name, target, progress, task):
 def main(networks, kr, kh, seed, plot_only):
     results = {}
     target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
-    names = sorted(set("ABCDEFGH") & set(networks)) if not plot_only else []
+    names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []
 
     if len(names) > 0:
         with Progress(

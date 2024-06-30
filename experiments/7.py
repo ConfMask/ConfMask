@@ -1,5 +1,5 @@
 """
-Minimum number of nodes of the same degree in all networks.
+Clustering coefficients of all networks.
 """
 
 import json
@@ -14,6 +14,7 @@ from pybatfish.client.session import Session
 
 from config import NETWORKS_DIR, CONFMASK_NAME, RESULTS_DIR, ORIGIN_NAME
 
+SUPPORTED_NETWORKS = "ABCDEFGH"
 bf = Session(host="localhost")
 
 
@@ -36,7 +37,7 @@ def run_network(name, target, progress, task):
         return nx.average_clustering(nx_graph)
 
     coef_origin = _get_least_anonymized(ORIGIN_NAME, "Original")
-    coef_target = _get_least_anonymized(target, "Anonymized")
+    coef_target = _get_least_anonymized(target, "ConfMask")
 
     _phase(f"[green]Done[/green] | {coef_origin:.3f} -> {coef_target:.3f}")
     progress.stop_task(task)
@@ -48,7 +49,7 @@ def run_network(name, target, progress, task):
     "-n",
     "--networks",
     type=str,
-    default="ABCDEFGH",
+    default=SUPPORTED_NETWORKS,
     show_default=True,
     help="Networks to evaluate.",
 )
@@ -63,7 +64,7 @@ def run_network(name, target, progress, task):
 def main(networks, kr, kh, seed, plot_only):
     results = {}
     target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
-    names = sorted(set("ABCDEFGH") & set(networks)) if not plot_only else []
+    names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []
 
     if len(names) > 0:
         with Progress(
@@ -97,7 +98,7 @@ def main(networks, kr, kh, seed, plot_only):
         x, width = np.arange(len(all_results)), 0.4
         plt.figure()
         plt.bar(x, [v for _, (v, _) in all_results], width, label="Original")
-        plt.bar(x + width, [v for _, (_, v) in all_results], width, label="Anonymized")
+        plt.bar(x + width, [v for _, (_, v) in all_results], width, label="ConfMask")
         plt.ylabel("Clustering coefficient")
         plt.ylim(0, 1)
         plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])

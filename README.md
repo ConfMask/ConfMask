@@ -1,10 +1,14 @@
 # ConfMask
 
-This repository contains the source code and evaluation scripts for the paper *ConfMask: Enabling Privacy-Preserving Configuration Sharing via Anonymization*.
+This repository contains the source code and evaluation scripts for the paper
+*ConfMask:Enabling Privacy-Preserving Configuration Sharing via Anonymization*.
 
 **ACM Reference format:**
 
-Yuejie Wang, Qiutong Men, Yao Xiao, Yongting Chen, and Guyue Liu. 2024. ConfMask: Enabling Privacy-Preserving Configuration Sharing via Anonymization. In *ACM SIGCOMM 2024 Conference (ACM SIGCOMM ’24), August 4–8, 2024, Sydney, NSW, Australia*. ACM, New York, NY, USA, 19 pages. https://doi.org/10.1145/3651890.3672217
+Yuejie Wang, Qiutong Men, Yao Xiao, Yongting Chen, and Guyue Liu. 2024. ConfMask:
+Enabling Privacy-Preserving Configuration Sharing via Anonymization. In
+*ACM SIGCOMM 2024 Conference (ACM SIGCOMM ’24), August 4–8, 2024, Sydney, NSW, Australia*.
+ACM, New York, NY, USA, 19 pages. https://doi.org/10.1145/3651890.3672217
 
 ## Setup
 
@@ -41,26 +45,28 @@ suite. Read on if you want to look into details, or something broke halfway and 
 not want to start over.
 
 > [!NOTE]
-> - Use the `--help` option on each script to see available options (including available network names).
-> - Each evaluation script saves/updates the results in the corresponding JSON file, in addition to producing the plots. Hence, the `--plot-only` option can be used to generate the plots from the existing results without re-running the experiments.
-> - The layout of the generated plots may be different from the paper, but they convey essentially the same information.
+> - Use the `--help` option on each script to see available options (including available
+>   network names).
+> - Each evaluation script supports evaluating only a subset of all relevant networks.
+>   Use the `--help` option to see relevant network names and use the `-n/--networks`
+>   option to specify the subset.
+> - Each evaluation script saves/updates the results in the corresponding JSON file, in
+>   addition to producing the plots. Hence, the `--plot-only` option can be used to
+>   generate the plots from the existing results without re-running the experiments.
+> - The layout of the generated plots may be different from the paper, but they convey
+>   essentially the same information.
 
 ### Generate anonymized networks
 
-Run the Confmask algorithm (required for all evaluations):
+Run the ConfMask algorithm (required for all evaluations):
 
 ```bash
+# Repeat for `-n A` through `-n H`
 python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n B
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n C
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n D
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n E
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n F
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n G
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n H
 ```
 
-Run the strawman algorithms (required for [Figure 16](#figure-16)):
+Run the strawman algorithms (required for [Figure 10](#figure-10) and
+[Figure 16](#figure-16)):
 
 ```bash
 # TODO
@@ -69,7 +75,9 @@ Run the strawman algorithms (required for [Figure 16](#figure-16)):
 ### Figure 5
 
 > [!NOTE]
-> The random noise generator has significant impact on the results of this experiment. The results may thus vary with different random seeds, but the average should be close to the results in the paper.
+> The random noise generator has significant impact on the results of this experiment.
+> The results may thus vary with different random seeds, but the overall average should
+> be close to the results in the paper.
 
 ```bash
 python experiments/5.py --kr 6 --kh 2 --seed 0
@@ -89,8 +97,13 @@ python experiments/7.py --kr 6 --kh 2 --seed 0
 
 ### Figure 8
 
+> [!NOTE]
+> This experiment involves NetHide, for which we directly provide intermediate results
+> produce by our re-implementation [here](./confmask/nethide.py). This experiment is
+> supported only for networks A, D, and G as in the paper.
+
 ```bash
-python experiments/8.py --kr 6 --kh 2  # TODO
+python experiments/8.py --kr 6 --kh 2 --seed 0
 ```
 
 ### Figure 9

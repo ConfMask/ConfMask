@@ -281,7 +281,7 @@ class RouterConfigFile:
                     _Line(f" distribute-list prefix {filter_name} in {interface}\n")
                 )
                 self._contents["filter"][interface] = [
-                    f"ip prefix-list {filter_name} permit 0.0.0.0/0 le 32\n"
+                    _Line(f"ip prefix-list {filter_name} permit 0.0.0.0/0 le 32\n")
                 ]
             filter_name = self._contents["filter"][interface][-1].strip().split()[2]
             self._contents["filter"][interface].insert(
@@ -295,7 +295,7 @@ class RouterConfigFile:
                     _Line(f" neighbor {neighbor} distribute-list {filter_no} in\n")
                 )
                 self._contents["filter"][neighbor] = [
-                    f"access-list {filter_no} permit any\n"
+                    _Line(f"access-list {filter_no} permit any\n")
                 ]
             filter_no = self._contents["filter"][neighbor][-1].strip().split()[1]
             self._contents["filter"][neighbor].insert(
@@ -336,9 +336,15 @@ class RouterConfigFile:
                 for line in block
                 if line.state == 1
             ),
-            "protocol": sum(
-                sum(1 for line in self._contents[segment] if line.state == 1)
-                for segment in ("ospf", "bgp", "bgp_address_family")
+            "protocol": (
+                sum(1 for line in self._contents["ospf"] if line.state == 1)
+                + sum(1 for line in self._contents["bgp"] if line.state == 1)
+                + sum(
+                    1
+                    for block in self._contents["bgp_address_family"]
+                    for line in block
+                    if line.state == 1
+                )
             ),
             "filter": sum(
                 1

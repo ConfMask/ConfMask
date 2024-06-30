@@ -146,7 +146,7 @@ def _get_candidates(network, n_samples, rng):
     return trees, accuracies, utilities, loads, complete_graph.edges
 
 
-def obfuscate(network, default_capacity, rng, n_samples=100, w=0.5):
+def nethide_obfuscate(network, default_capacity, rng, n_samples=100, w=0.5):
     """Obfuscates the given network with NetHide.
 
     Parameters

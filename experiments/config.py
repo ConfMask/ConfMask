@@ -22,7 +22,12 @@ NETWORKS_DIR = Path(__file__).parent.parent / "networks"
 # Level 3: Different versions of the same network
 ORIGIN_NAME = "origin"
 CONFMASK_NAME = "confmask-kr{kr}-kh{kh}-seed{seed}"
+NETHIDE_NAME = "nethide"
 
 # Level 4: Different subdirectories for storing configurations
 ROUTERS_SUBDIR = "configs"
 HOSTS_SUBDIR = "hosts"
+
+# File names
+STATS_FILE = "_stats.json"
+NETHIDE_FORWARDING_FILE = "forwarding.json"

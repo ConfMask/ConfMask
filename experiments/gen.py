@@ -1,5 +1,7 @@
 import ipaddress
+import json
 import shutil
+import time
 from collections import defaultdict
 
 import click
@@ -21,6 +23,7 @@ from config import (
     PROTOCOL_MAPPING,
     ROUTERS_SUBDIR,
     HOSTS_SUBDIR,
+    STATS_FILE,
 )
 
 bf = Session(host="localhost")
@@ -44,6 +47,7 @@ def run_network(network, kr, kh, seed, progress, task):
     network_dir = NETWORKS_DIR / network
     protocol = PROTOCOL_MAPPING[network]
     rng = np.random.default_rng([seed, ord(network)])
+    start_time = time.perf_counter()
 
     def _phase(description):
         progress.update(task, description=f"[{network}] {description}")
@@ -291,8 +295,27 @@ def run_network(network, kr, kh, seed, progress, task):
     for _, rcf in R_map.values():
         rcf.emit(confmask_dir / ROUTERS_SUBDIR)
 
-    _phase(f"[green]Done[/green] in {n_iteration} iterations")
+    end_time = time.perf_counter()
+    _phase(f"[green]Done[/green] in {n_iteration} iterations | Saving statistics...")
     progress.stop_task(task)
+
+    # Save statistics
+    entrance_interface = {r: R_map[r][1].interface for r in R_map}
+    lines_modified = defaultdict(int)
+    for _, rcf in R_map.values():
+        for kind, num in rcf.count_modified_lines().items():
+            lines_modified[kind] += num
+    with (confmask_dir / STATS_FILE).open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "lines_modified": lines_modified,
+                "entrance_interface": entrance_interface,
+                "time_elapsed": end_time - start_time,
+            },
+            f,
+            indent=2,
+        )
+    _phase(f"[green]Done[/green] in {n_iteration} iterations")
 
 
 @click.command()
