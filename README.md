@@ -31,9 +31,10 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-Pull the docker image and run Batfish:
+Pull the necessary docker images and run Batfish:
 
 ```bash
+docker pull ghcr.io/nyu-netsys/confmask-config2spec:latest
 docker pull batfish/allinone
 docker run --name batfish -v batfish-data:/data -p 8888:8888 -p 9997:9997 -p 9996:9996 batfish/allinone
 ```
@@ -107,6 +108,12 @@ python experiments/8.py --kr 6 --kh 2 --seed 0
 ```
 
 ### Figure 9
+
+> [!NOTE]
+> This experiment involves Config2Spec, for which we use a modified version to
+> support extracting network specifications of both NetHide and ConfMask for comparison.
+> We provide a docker image with all necessary dependencies, so please make sure you have
+> pulled the image according to the [setup](#setup).
 
 ```bash
 python experiments/9.py --kr 6 --kh 2 --seed 0

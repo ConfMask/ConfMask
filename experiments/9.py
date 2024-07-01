@@ -363,7 +363,7 @@ def main(networks, kr, kh, seed, plot_only):
         plt.legend(loc="upper right")
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"9-{target}.png")
-        # plt.show()
+        plt.show()
 
 
 if __name__ == "__main__":
