@@ -109,7 +109,7 @@ python experiments/8.py --kr 6 --kh 2 --seed 0
 ### Figure 9
 
 ```bash
-python experiments/9.py --kr 6 --kh 2  # TODO
+python experiments/9.py --kr 6 --kh 2 --seed 0
 ```
 
 ### Figure 10

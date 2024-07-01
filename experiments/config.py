@@ -31,3 +31,4 @@ HOSTS_SUBDIR = "hosts"
 # File names
 STATS_FILE = "_stats.json"
 NETHIDE_FORWARDING_FILE = "forwarding.json"
+NETHIDE_FORWARDING_ORIGIN_FILE = "forwarding-origin.json"

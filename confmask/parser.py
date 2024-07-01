@@ -215,7 +215,7 @@ class RouterConfigFile:
                     bgp_network = interface.network.network_address
                     bgp_mask = interface.netmask
                 else:
-                    bgp_network = f"network {network_addr}"
+                    bgp_network = network_addr
                     bgp_mask = "255.255.255.0"
                 self._contents["bgp"].insert(
                     insert_pos, _Line(f" network {bgp_network} mask {bgp_mask}\n")
