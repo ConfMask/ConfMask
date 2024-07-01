@@ -109,8 +109,14 @@ python experiments/8.py --kr 6 --kh 2 --seed 0
 
 ### Figure 9
 
+> [!NOTE]
+> This experiment involves Config2Spec, for which we use a modified version to
+> support extracting network specifications of both NetHide and ConfMask for comparison.
+> We provide a docker image with all necessary dependencies, so please make sure you have
+> pulled the image according to the [setup](#setup).
+
 ```bash
-python experiments/9.py --kr 6 --kh 2  # TODO
+python experiments/9.py --kr 6 --kh 2 --seed 0
 ```
 
 ### Figure 10
