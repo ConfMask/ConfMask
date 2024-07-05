@@ -331,8 +331,16 @@ def run_network(network, kr, kh, seed, progress, task):
 @click.option("--kh", required=True, type=int, help="Host anonymization degree.")
 @click.option("--seed", required=True, type=int, help="Random seed.")
 def main(network, kr, kh, seed):
-    with Progress(TimeElapsedColumn(), TextColumn("{task.description}")) as progress:
-        task = progress.add_task(f"[{network}] Starting...", total=None)
+    with Progress(
+        TimeElapsedColumn(),
+        TextColumn("{task.description}"),
+        TextColumn("({task.fields[params]})", style="dim white"),
+    ) as progress:
+        task = progress.add_task(
+            f"[{network}] Starting...",
+            total=None,
+            params=f"kr={kr}, kh={kh}, seed={seed}",
+        )
         run_network(network, kr, kh, seed, progress, task)
 
 
