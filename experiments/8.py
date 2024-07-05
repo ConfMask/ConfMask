@@ -23,10 +23,11 @@ from config import (
     NETHIDE_NAME,
     STATS_FILE,
     NETHIDE_FORWARDING_FILE,
+    BF_HOST,
 )
 
 SUPPORTED_NETWORKS = "ADG"
-bf = Session(host="localhost")
+bf = Session(host=BF_HOST)
 
 
 def run_network(name, target, progress, task):

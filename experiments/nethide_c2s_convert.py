@@ -3,10 +3,15 @@ import os
 import pickle
 
 # NetHide forwarding graph only contains node name, we need to add interface / prefix information to it
-P2P_PREFIXES = list(ipaddress.ip_network("192.168.0.0/16").subnets(new_prefix=30)) # 2^(30-16) = 16384 subnets
+P2P_PREFIXES = list(
+    ipaddress.ip_network("192.168.0.0/16").subnets(new_prefix=30)
+)  # 2^(30-16) = 16384 subnets
 P2P_PREFIX_IDX = -1
-ADVERTISE_PREFIXES = list(ipaddress.ip_network("10.123.0.0/16").subnets(new_prefix=24)) # 2^(24-16) = 256 subnets
+ADVERTISE_PREFIXES = list(
+    ipaddress.ip_network("10.123.0.0/16").subnets(new_prefix=24)
+)  # 2^(24-16) = 256 subnets
 ADVERTISE_PREFIX_IDX = -1
+
 
 def get_next_prefix(typ="p2p"):
     """
@@ -23,9 +28,11 @@ def get_next_prefix(typ="p2p"):
         ADVERTISE_PREFIX_IDX += 1
         return ADVERTISE_PREFIXES[ADVERTISE_PREFIX_IDX]
 
+
 global SYNTHESIZERS
 SYNTHESIZERS = {}
 ANOTHER_IF_PENDING_ADD = {}
+
 
 def create_or_mkdirs(path):
     """
@@ -33,6 +40,7 @@ def create_or_mkdirs(path):
     """
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
+
 
 class RouterSynthesizer:
     def __init__(self, name: str, forwarding_graph: dict) -> None:
@@ -62,13 +70,22 @@ class RouterSynthesizer:
             route_typ = "OspfIntraAreaRoute"
 
             self.flush_pending_add()
-            if next_hop not in self.neighbors_interfaces and not (next_hop in SYNTHESIZERS and self.name in SYNTHESIZERS[next_hop].neighbors_interfaces):
+            if next_hop not in self.neighbors_interfaces and not (
+                next_hop in SYNTHESIZERS
+                and self.name in SYNTHESIZERS[next_hop].neighbors_interfaces
+            ):
                 next_interface = self.next_interface()
                 hosts = list(next_interface[1].hosts())
-                self.neighbors_interfaces[next_hop] = (next_interface[0], hosts[0], next_interface[1])
+                self.neighbors_interfaces[next_hop] = (
+                    next_interface[0],
+                    hosts[0],
+                    next_interface[1],
+                )
                 if next_hop not in ANOTHER_IF_PENDING_ADD:
                     ANOTHER_IF_PENDING_ADD[next_hop] = []
-                ANOTHER_IF_PENDING_ADD[next_hop].append((self.name, hosts[1], next_interface[1]))
+                ANOTHER_IF_PENDING_ADD[next_hop].append(
+                    (self.name, hosts[1], next_interface[1])
+                )
 
             self.fibs[dst] = (self.neighbors_interfaces[next_hop][0], route_typ)
 
@@ -94,18 +111,25 @@ class RouterSynthesizer:
         """
         Generate the C2S FIBs text for the router.
         """
-        txt = f"# Router:{self.name}\n" +\
-              f"## VRF:default\n" + \
-              f"{self.advertise_prefix[1]};{self.advertise_prefix[0]};ConnectedRoute\n"
+        txt = (
+            f"# Router:{self.name}\n"
+            + f"## VRF:default\n"
+            + f"{self.advertise_prefix[1]};{self.advertise_prefix[0]};ConnectedRoute\n"
+        )
         for neighbor in self.neighbors_interfaces:
             if_info = self.neighbors_interfaces[neighbor]
             out_if, addr, pfx = self.neighbors_interfaces[neighbor]
             txt += f"{pfx};{out_if};ConnectedRoute\n"
         for dst in self.fibs:
             out_if, route_type = self.fibs[dst]
-            dst_pfx = SYNTHESIZERS[dst].advertise_prefix[1] if route_type == "OspfIntraAreaRoute" else self.neighbors_interfaces[dst][2]
+            dst_pfx = (
+                SYNTHESIZERS[dst].advertise_prefix[1]
+                if route_type == "OspfIntraAreaRoute"
+                else self.neighbors_interfaces[dst][2]
+            )
             txt += f"{dst_pfx};{out_if};{route_type}\n"
         return txt
+
 
 def save_forwarding_to_c2s_fib(forwarding: dict, network_path: str):
     """
@@ -118,19 +142,19 @@ def save_forwarding_to_c2s_fib(forwarding: dict, network_path: str):
         else:
             router_synthesizer = SYNTHESIZERS[node]
             router_synthesizer.update_forwarding(forwarding[node])
-    
+
     data = {
-        'node_neighbors': {},
-        'node_networks': {},
+        "node_neighbors": {},
+        "node_networks": {},
     }
     node_c2s_fibs = ""
     for node in forwarding:
         router_synthesizer = SYNTHESIZERS[node]
         router_synthesizer.flush_pending_add()
-        data['node_neighbors'][node] = router_synthesizer.neighbors_interfaces 
-        data['node_networks'][node] = router_synthesizer.advertise_prefix
+        data["node_neighbors"][node] = router_synthesizer.neighbors_interfaces
+        data["node_networks"][node] = router_synthesizer.advertise_prefix
         node_c2s_fibs += router_synthesizer.gen_c2s_fibs_text()
-    
+
     create_or_mkdirs(f"{network_path}/fibs")
     pickle.dump(data, open(f"{network_path}/data.pkl", "wb"))
     with open(f"{network_path}/fibs/fib-1.txt", "w+") as f:

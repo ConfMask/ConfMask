@@ -1,5 +1,7 @@
 from pathlib import Path
 
+BF_HOST = "localhost"
+
 # Results directory
 RESULTS_DIR = Path(__file__).parent / "results"
 

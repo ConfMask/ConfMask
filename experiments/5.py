@@ -13,10 +13,10 @@ from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedC
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
 
-from config import NETWORKS_DIR, CONFMASK_NAME, RESULTS_DIR
+from config import NETWORKS_DIR, CONFMASK_NAME, RESULTS_DIR, BF_HOST
 
 SUPPORTED_NETWORKS = "ABCDEFGH"
-bf = Session(host="localhost")
+bf = Session(host=BF_HOST)
 
 
 def run_network(name, target, progress, task):

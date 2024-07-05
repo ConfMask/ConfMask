@@ -12,10 +12,10 @@ from confmask.utils import analyze_topology
 from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session
 
-from config import NETWORKS_DIR, CONFMASK_NAME, RESULTS_DIR, ORIGIN_NAME
+from config import NETWORKS_DIR, CONFMASK_NAME, RESULTS_DIR, ORIGIN_NAME, BF_HOST
 
 SUPPORTED_NETWORKS = "ABCDEFGH"
-bf = Session(host="localhost")
+bf = Session(host=BF_HOST)
 
 
 def run_network(name, target, progress, task):

@@ -24,9 +24,10 @@ from config import (
     ROUTERS_SUBDIR,
     HOSTS_SUBDIR,
     STATS_FILE,
+    BF_HOST,
 )
 
-bf = Session(host="localhost")
+bf = Session(host=BF_HOST)
 
 
 def _get_host_rib(routes, H_networks, _phase):
