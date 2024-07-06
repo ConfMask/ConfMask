@@ -10,6 +10,7 @@ import click
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
+import rich
 from joblib import Parallel, delayed
 from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session
@@ -96,8 +97,6 @@ def run_network(name, target, progress, task):
             fd_tree[src][dst] = path
             progress.update(task, advance=1)
 
-        import rich
-
         rich.print(fd_tree)
         rich.print(gws)
 
@@ -171,6 +170,7 @@ def run_network(name, target, progress, task):
     help="Plot based on stored results without running any evaluation. Ignores -n/--networks.",
 )
 def main(networks, kr, kh, seed, plot_only):
+    rich.get_console().rule(f"Figure 5 | {kr=}, {kh=}, {seed=}")
     results = {}
     target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
     names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []
@@ -215,7 +215,6 @@ def main(networks, kr, kh, seed, plot_only):
         plt.legend(loc="upper left")
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"8-{target}.png")
-        plt.show()
 
 
 if __name__ == "__main__":

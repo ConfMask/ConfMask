@@ -8,6 +8,7 @@ from collections import Counter
 import click
 import matplotlib.pyplot as plt
 import numpy as np
+import rich
 from confmask.utils import analyze_topology
 from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session
@@ -62,6 +63,7 @@ def run_network(name, target, progress, task):
     help="Plot based on stored results without running any evaluation. Ignores -n/--networks.",
 )
 def main(networks, kr, kh, seed, plot_only):
+    rich.get_console().rule(f"Figure 6 | {kr=}, {kh=}, {seed=}")
     results = {}
     target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
     names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []
@@ -104,7 +106,6 @@ def main(networks, kr, kh, seed, plot_only):
         plt.legend(loc="upper left")
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"6-{target}.png")
-        plt.show()
 
 
 if __name__ == "__main__":

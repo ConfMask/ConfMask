@@ -7,8 +7,9 @@ from collections import defaultdict
 from itertools import permutations
 
 import click
-from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
+import rich
+from joblib import Parallel, delayed
 from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
@@ -113,6 +114,7 @@ def run_network(name, target, progress, task):
     help="Plot based on stored results without running any evaluation. Ignores -n/--networks.",
 )
 def main(networks, kr, kh, seed, plot_only):
+    rich.get_console().rule(f"Figure 5 | {kr=}, {kh=}, {seed=}")
     results = {}
     target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
     names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []
@@ -151,7 +153,6 @@ def main(networks, kr, kh, seed, plot_only):
         plt.ylabel("Avg # of distinct paths between edge routers")
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"5-{target}.png")
-        plt.show()
 
 
 if __name__ == "__main__":
