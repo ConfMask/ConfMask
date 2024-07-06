@@ -2,6 +2,7 @@ import ipaddress
 import json
 import shutil
 import time
+import traceback
 from collections import defaultdict
 
 import click
@@ -345,7 +346,18 @@ def main(network, kr, kh, seed, force):
             total=None,
             params=f"kr={kr}, kh={kh}, seed={seed}",
         )
-        run_network(network, kr, kh, seed, force, progress, task)
+        try:
+            run_network(network, kr, kh, seed, force, progress, task)
+        except:
+            # Remove the target directory and print traceback on error
+            progress.update(task, description=f"[{network}] [red]Error")
+            progress.stop_task(task)
+            target_dir = (
+                NETWORKS_DIR / network / CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
+            )
+            if target_dir.exists():
+                shutil.rmtree(target_dir)
+            progress.console.print_exception()
 
 
 if __name__ == "__main__":
