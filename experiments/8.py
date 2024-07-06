@@ -54,7 +54,8 @@ def run_network(name, target, progress, task):
         # Extract information from the network topology
         gws = {}  # Source host -> destination gateway
         gw_interfaces = {}  # Source host -> destination gateway interface
-        router_ips = {}  # Router -> IP
+        router_ips = defaultdict(set)  # Router -> IP
+        ip_inf_mapping = dict()
         routers = set()
         for row in topology.itertuples(index=False):
             src_node, dst_node = (
@@ -64,28 +65,34 @@ def run_network(name, target, progress, task):
             if "host" not in src_node and "host" not in dst_node:
                 routers.add(src_node)
                 routers.add(dst_node)
-                router_ips[src_node] = row.IPs[0]
-                router_ips[dst_node] = row.Remote_IPs[0]
+                router_ips[src_node].add(row.IPs[0])
+                router_ips[dst_node].add(row.Remote_IPs[0])
+                ip_inf_mapping[row.IPs[0]] = row.Interface.interface
+                ip_inf_mapping[row.Remote_IPs[0]] = row.Remote_Interface.interface
             elif "host" in src_node:
                 gws[src_node] = dst_node
                 gw_interfaces[src_node] = row.Remote_Interface.interface
 
-        def _trace(src, dst):
+        def _trace(src_n: str, dst_n: str) -> (str, str, list[list]):
             """Trace routes between two routers."""
-            start_location = f"@enter({src}[{entrance_interface[src]}])"
-            trace_route = (
-                bf.q.traceroute(
-                    startLocation=start_location,
-                    headers=HeaderConstraints(
-                        srcIps=router_ips[src],
-                        dstIps=router_ips[dst],
-                    ),
-                )
-                .answer()
-                .frame()
-            )
-            _phase(f"[{prefix}] {router_ips[src]} -> {router_ips[dst]}")
-            return src, dst, [hop.node for hop in trace_route.Traces[0][0]]
+            hop_results = []
+            for s_ip in router_ips[src_n]:
+                for d_ip in router_ips[dst_n]:
+                    start_location = f"@enter({src}[{ip_inf_mapping[s_ip]}])"
+                    trace_route = (
+                        bf.q.traceroute(
+                            startLocation=start_location,
+                            headers=HeaderConstraints(
+                                srcIps=s_ip,
+                                dstIps=d_ip,
+                            ),
+                        )
+                        .answer()
+                        .frame()
+                    )
+                    _phase(f"[{prefix}] {router_ips[src]} -> {router_ips[dst]}")
+                    hop_results.append([hop.node for hop in trace_route.Traces[0][0]])
+            return src, dst, hop_results
 
         router_pairs = list(permutations(routers, 2))
         progress.update(task, total=len(router_pairs), completed=0)
@@ -116,14 +123,22 @@ def run_network(name, target, progress, task):
             for dst_host, origin_path in all_origin_paths.items():
                 n_total += 1
                 target_path = traces[src_host][dst_host]
-                if len(origin_path) == len(target_path):
-                    is_same_path = True
-                    for origin_hop, target_hop in zip(origin_path, target_path):
-                        if origin_hop != target_hop:
-                            is_same_path = False
-                            break
-                    if is_same_path:
-                        n_same += 1
+
+                found = False
+                for o_trace in origin_path:
+                    for c_trace in target_path:
+                        if len(origin_path) == len(target_path):
+                            is_same_path = True
+                            for origin_hop, target_hop in zip(origin_path, target_path):
+                                if origin_hop != target_hop:
+                                    is_same_path = False
+                                    break
+                            if is_same_path:
+                                found = True
+                                n_same += 1
+                                break
+                    if found:
+                        break
         return n_same / n_total
 
     # Compare ConfMask with the original network
