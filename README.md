@@ -46,8 +46,9 @@ suite. Read on if you want to look into details, or something broke halfway and 
 not want to start over.
 
 > [!NOTE]
-> - Use the `--help` option on each script to see available options (including available
->   network names).
+> - Use the `--help` option on each script to see available options.
+> - The generation script does not overwrite existing data by default. Use the
+>   `-f/--force` to force overwrite existing data instead.
 > - Each evaluation script supports evaluating only a subset of all relevant networks.
 >   Use the `--help` option to see relevant network names and use the `-n/--networks`
 >   option to specify the subset.

@@ -43,7 +43,7 @@ def _get_host_rib(routes, H_networks, _phase):
     return pd.DataFrame(rows).drop_duplicates(), route_map
 
 
-def run_network(network, kr, kh, seed, progress, task):
+def run_network(network, kr, kh, seed, force, progress, task):
     """TODO"""
     network_dir = NETWORKS_DIR / network
     protocol = PROTOCOL_MAPPING[network]
@@ -52,6 +52,21 @@ def run_network(network, kr, kh, seed, progress, task):
 
     def _phase(description):
         progress.update(task, description=f"[{network}] {description}")
+
+    # Clean up and prepare the target directory
+    confmask_name = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
+    confmask_dir = network_dir / confmask_name
+    if confmask_dir.exists() and not force:
+        _phase("[yellow]Skipped")
+        return
+    _phase("Cleaning up target directory...")
+    router_config_dir = confmask_dir / ROUTERS_SUBDIR
+    host_config_dir = confmask_dir / HOSTS_SUBDIR
+    if confmask_dir.exists():
+        shutil.rmtree(confmask_dir)
+    confmask_dir.mkdir(parents=True)
+    router_config_dir.mkdir()
+    host_config_dir.mkdir()
 
     # Analyze the original network using Batfish
     _phase("Uploading configurations...")
@@ -158,18 +173,6 @@ def run_network(network, kr, kh, seed, progress, task):
                 protocol,
                 prefix=fake_content["hostInterfaces"]["eth0"]["prefix"],
             )
-
-    # Clean and prepare the target directories
-    _phase("Cleaning up target directory...")
-    confmask_name = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
-    confmask_dir = network_dir / confmask_name
-    router_config_dir = confmask_dir / ROUTERS_SUBDIR
-    host_config_dir = confmask_dir / HOSTS_SUBDIR
-    if confmask_dir.exists():
-        shutil.rmtree(confmask_dir)
-    confmask_dir.mkdir(parents=True)
-    router_config_dir.mkdir()
-    host_config_dir.mkdir()
 
     # Write the modified router and host configurations
     _phase("Writing configurations...")
@@ -330,7 +333,8 @@ def run_network(network, kr, kh, seed, progress, task):
 @click.option("--kr", required=True, type=int, help="Router anonymization degree.")
 @click.option("--kh", required=True, type=int, help="Host anonymization degree.")
 @click.option("--seed", required=True, type=int, help="Random seed.")
-def main(network, kr, kh, seed):
+@click.option("-f", "--force", is_flag=True, help="Force overwrite existing data.")
+def main(network, kr, kh, seed, force):
     with Progress(
         TimeElapsedColumn(),
         TextColumn("{task.description}"),
@@ -341,7 +345,7 @@ def main(network, kr, kh, seed):
             total=None,
             params=f"kr={kr}, kh={kh}, seed={seed}",
         )
-        run_network(network, kr, kh, seed, progress, task)
+        run_network(network, kr, kh, seed, force, progress, task)
 
 
 if __name__ == "__main__":
