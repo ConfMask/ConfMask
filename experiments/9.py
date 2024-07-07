@@ -430,7 +430,7 @@ def main(networks, kr, kh, seed, plot_only):
         plt.ylabel("Specs Difference Ratio")
         plt.ylim(0, 3)
         plt.xticks(x, [f"Net{k}" for k in all_results])
-        plt.legend(loc="upper right")
+        plt.legend()
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"9-{target}.png")
 

@@ -103,7 +103,7 @@ def main(networks, kr, kh, seed, plot_only):
         plt.bar(x + width, [v for _, (_, v) in all_results], width, label="ConfMask")
         plt.ylabel("Min # of same-degree nodes")
         plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])
-        plt.legend(loc="upper left")
+        plt.legend()
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"6-{target}.png")
 

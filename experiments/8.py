@@ -212,7 +212,7 @@ def main(networks, kr, kh, seed, plot_only):
         plt.ylim(0, 1)
         plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])
         plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1.0))
-        plt.legend(loc="upper left")
+        plt.legend()
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"8-{target}.png")
 

@@ -104,7 +104,7 @@ def main(networks, kr, kh, seed, plot_only):
         plt.ylabel("Clustering coefficient")
         plt.ylim(0, 1)
         plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])
-        plt.legend(loc="upper right")
+        plt.legend()
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"7-{target}.png")
 
