@@ -34,8 +34,8 @@ python -m pip install -e .
 Pull the necessary docker images and run Batfish:
 
 ```bash
-docker pull ghcr.io/nyu-netsys/confmask-config2spec:latest
 docker pull batfish/allinone
+docker pull ghcr.io/nyu-netsys/confmask-config2spec:latest  # Used for Experiment 9 
 docker run --name batfish -v batfish-data:/data -p 8888:8888 -p 9997:9997 -p 9996:9996 batfish/allinone
 ```
 
@@ -128,14 +128,20 @@ python experiments/10.py --kr 6 --kh 2  # TODO
 
 ### Figure 11
 
+> [!NOTE]
+> This experiment relies on the results of [Figure 5](#figure-5).
+
 ```bash
-python experiments/11.py --kr 6 --kh 2  # TODO
+python ./experiments/11.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
 ```
 
 ### Figure 12
 
+> [!NOTE]
+> This experiment relies on the results of [Figure 5](#figure-5).
+
 ```bash
-python experiments/12.py --kr 6 --kh 2  # TODO
+python ./experiments/12.py --kr 6 --kh 2 --kh 4 --kh 6 --seed 0
 ```
 
 ### Figure 13
