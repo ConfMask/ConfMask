@@ -321,37 +321,55 @@ class RouterConfigFile:
         """Check if the router has the given protocol."""
         return len(self._contents[protocol]) > 0
 
-    def count_modified_lines(self):
-        """Count the number of lines modified in the configuration file.
+    def count_lines(self):
+        """Count the number of lines modified and in total in the configuration file.
 
         Returns
         -------
-        lines_modified : dict
-            The number of modified lines for interface, routing protocols, and filters.
+        lines_count : dict
+            The number of modified and total lines for interface, routing protocols, and
+            filters, respectively.
         """
+        interface_lines_total, interface_lines_modified = 0, 0
+        for block in self._contents["interface"]:
+            for line in block:
+                interface_lines_total += 1
+                if line.state == 1:
+                    interface_lines_modified += 1
+
+        protocol_lines_total, protocol_lines_modified = 0, 0
+        for block in self._contents["ospf"]:
+            protocol_lines_total += 1
+            if block.state == 1:
+                protocol_lines_modified += 1
+        for block in self._contents["bgp"]:
+            protocol_lines_total += 1
+            if block.state == 1:
+                protocol_lines_modified += 1
+        for block in self._contents["bgp_address_family"]:
+            for line in block:
+                protocol_lines_total += 1
+                if line.state == 1:
+                    protocol_lines_modified += 1
+
+        filter_lines_total, filter_lines_modified = 0, 0
+        for block in self._contents["filter"].values():
+            for line in block:
+                filter_lines_total += 1
+                if line.state == 1:
+                    filter_lines_modified += 1
+
         return {
-            "interface": sum(
-                1
-                for block in self._contents["interface"]
-                for line in block
-                if line.state == 1
-            ),
-            "protocol": (
-                sum(1 for line in self._contents["ospf"] if line.state == 1)
-                + sum(1 for line in self._contents["bgp"] if line.state == 1)
-                + sum(
-                    1
-                    for block in self._contents["bgp_address_family"]
-                    for line in block
-                    if line.state == 1
-                )
-            ),
-            "filter": sum(
-                1
-                for block in self._contents["filter"].values()
-                for line in block
-                if line.state == 1
-            ),
+            "modified": {
+                "interface": interface_lines_modified,
+                "protocol": protocol_lines_modified,
+                "filter": filter_lines_modified,
+            },
+            "total": {
+                "interface": interface_lines_total,
+                "protocol": protocol_lines_total,
+                "filter": filter_lines_total,
+            },
         }
 
     def emit(self, dir):

@@ -305,14 +305,19 @@ def run_network(network, kr, kh, seed, force, progress, task):
 
     # Save statistics
     entrance_interface = {r: R_map[r][1].interface for r in R_map}
-    lines_modified = defaultdict(int)
+    config_lines_modified = defaultdict(int)
+    config_lines_total = defaultdict(int)
     for _, rcf in R_map.values():
-        for kind, num in rcf.count_modified_lines().items():
-            lines_modified[kind] += num
+        lines_count = rcf.count_lines()
+        for kind, num in lines_count["modified"].items():
+            config_lines_modified[kind] += num
+        for kind, num in lines_count["total"].items():
+            config_lines_total[kind] += num
     with (confmask_dir / STATS_FILE).open("w", encoding="utf-8") as f:
         json.dump(
             {
-                "lines_modified": lines_modified,
+                "config_lines_modified": config_lines_modified,
+                "config_lines_total": config_lines_total,
                 "entrance_interface": entrance_interface,
                 "time_elapsed": end_time - start_time,
             },

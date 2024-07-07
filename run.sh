@@ -45,11 +45,13 @@ python ./experiments/gen.py --kr 10 --kh 2 --seed 0 -n H
 
 # Experiments
 python ./experiments/5.py --kr 6 --kh 2 --seed 0
-python ./experiments/5.py --kr 2 --kh 2 --seed 0  # For 11
-python ./experiments/5.py --kr 10 --kh 2 --seed 0  # For 11
-python ./experiments/5.py --kr 6 --kh 4 --seed 0  # For 12
-python ./experiments/5.py --kr 6 --kh 6 --seed 0  # For 12
+python ./experiments/5.py --kr 2 --kh 2 --seed 0
+python ./experiments/5.py --kr 10 --kh 2 --seed 0
+python ./experiments/5.py --kr 6 --kh 4 --seed 0
+python ./experiments/5.py --kr 6 --kh 6 --seed 0
 python ./experiments/6.py --kr 6 --kh 2 --seed 0
 python ./experiments/7.py --kr 6 --kh 2 --seed 0
 python ./experiments/11.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
 python ./experiments/12.py --kr 6 --kh 2 --kh 4 --kh 6 --seed 0
+python ./experiments/13.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
+python ./experiments/14.py --kr 6 --kh 2 --kh 4 --seed 0

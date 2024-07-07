@@ -147,13 +147,13 @@ python ./experiments/12.py --kr 6 --kh 2 --kh 4 --kh 6 --seed 0
 ### Figure 13
 
 ```bash
-python experiments/13.py --kr 6 --kh 2  # TODO
+python ./experiments/13.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
 ```
 
 ### Figure 14
 
 ```bash
-python experiments/14.py --kr 6 --kh 2  # TODO
+python ./experiments/14.py --kr 6 --kh 2 --kh 4 --seed 0
 ```
 
 ### Figure 15
