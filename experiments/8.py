@@ -170,7 +170,7 @@ def run_network(name, target, progress, task):
     help="Plot based on stored results without running any evaluation. Ignores -n/--networks.",
 )
 def main(networks, kr, kh, seed, plot_only):
-    rich.get_console().rule(f"Figure 5 | {kr=}, {kh=}, {seed=}")
+    rich.get_console().rule(f"Figure 8 | {kr=}, {kh=}, {seed=}")
     results = {}
     target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
     names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []

@@ -61,7 +61,6 @@ def run_network(name, target, progress, task):
                 if src_host == dst_host:
                     continue
 
-                # Traceroute
                 start_location = f"@enter({src_gw}[{gw_interfaces[src_host]}])"
                 trace_route = (
                     bf.q.traceroute(
@@ -75,8 +74,6 @@ def run_network(name, target, progress, task):
                     .frame()
                 )
                 _phase(f"{host_ips[src_host]} -> {host_ips[dst_host]}")
-
-                # Encode by the hops
                 path = trace_route.Traces[0][0]
                 paths_mem.add("->".join(hop.node for hop in path.hops[:-1]))
 

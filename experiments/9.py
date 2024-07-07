@@ -8,7 +8,6 @@ import click
 import glob
 import ipaddress
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
 import os
 import pickle

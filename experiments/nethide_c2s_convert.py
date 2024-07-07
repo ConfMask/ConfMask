@@ -113,7 +113,7 @@ class RouterSynthesizer:
         """
         txt = (
             f"# Router:{self.name}\n"
-            + f"## VRF:default\n"
+            + "## VRF:default\n"
             + f"{self.advertise_prefix[1]};{self.advertise_prefix[0]};ConnectedRoute\n"
         )
         for neighbor in self.neighbors_interfaces:

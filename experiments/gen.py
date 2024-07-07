@@ -2,7 +2,6 @@ import ipaddress
 import json
 import shutil
 import time
-import traceback
 from collections import defaultdict
 
 import click
@@ -348,7 +347,7 @@ def main(network, kr, kh, seed, force):
         )
         try:
             run_network(network, kr, kh, seed, force, progress, task)
-        except:
+        except Exception:
             # Remove the target directory and print traceback on error
             progress.update(task, description=f"[{network}] [red]Error")
             progress.stop_task(task)
