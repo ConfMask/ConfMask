@@ -38,11 +38,7 @@ def run_network(name, target, progress, task):
     def _phase(description):
         progress.update(task, description=f"[{name}] {description}")
 
-    # Load entrance interface
-    with (NETWORKS_DIR / name / target / STATS_FILE).open("r", encoding="utf-8") as f:
-        entrance_interface = json.load(f)["entrance_interface"]
-
-    def _load_trace(ver, prefix):
+    def _load_fd_tree(ver, prefix):
         """Obtain the forwarding behavior of a network."""
         _phase(f"[{prefix}] Uploading configurations...")
         bf.set_network(name)
@@ -53,10 +49,12 @@ def run_network(name, target, progress, task):
 
         # Extract information from the network topology
         gws = {}  # Source host -> destination gateway
+        gw_nodes = defaultdict(list)  # Destination gateway -> source hosts
         gw_interfaces = {}  # Source host -> destination gateway interface
-        router_ips = defaultdict(set)  # Router -> IP
-        ip_inf_mapping = dict()
-        routers = set()
+        host_ips = {}  # Host -> IP
+        routers = set()  # Set of routers
+        router_ips = defaultdict(set)  # Router -> set of IPs
+        router_ip2inf = {}  # Router IP -> interface
         for row in topology.itertuples(index=False):
             src_node, dst_node = (
                 row.Interface.hostname,
@@ -67,104 +65,115 @@ def run_network(name, target, progress, task):
                 routers.add(dst_node)
                 router_ips[src_node].add(row.IPs[0])
                 router_ips[dst_node].add(row.Remote_IPs[0])
-                ip_inf_mapping[row.IPs[0]] = row.Interface.interface
-                ip_inf_mapping[row.Remote_IPs[0]] = row.Remote_Interface.interface
+                router_ip2inf[row.IPs[0]] = row.Interface.interface
+                router_ip2inf[row.Remote_IPs[0]] = row.Remote_Interface.interface
             elif "host" in src_node:
                 gws[src_node] = dst_node
+                gw_nodes[dst_node].append(src_node)
                 gw_interfaces[src_node] = row.Remote_Interface.interface
+                host_ips[src_node] = row.IPs[0]
+            elif "host" in dst_node:
+                host_ips[dst_node] = row.Remote_IPs[0]
 
-        def _trace(src_n: str, dst_n: str) -> (str, str, list[list]):
-            """Trace routes between two routers."""
-            hop_results = []
-            for s_ip in router_ips[src_n]:
-                for d_ip in router_ips[dst_n]:
-                    start_location = f"@enter({src}[{ip_inf_mapping[s_ip]}])"
+        def _trace(src_gw, dst_gw):
+            """Trace routes between two gateways."""
+            paths_mem = set()
+
+            # For all possible IPs attached to the source gateway, run traceroute to
+            # all possible IPs attached to the destination gateway
+            for src_host in gw_nodes[src_gw]:
+                for dst_host in gw_nodes[dst_gw]:
+                    if src_host == dst_host:
+                        continue
+
+                    start_location = f"@enter({src_gw}[{gw_interfaces[src_host]}])"
                     trace_route = (
                         bf.q.traceroute(
                             startLocation=start_location,
                             headers=HeaderConstraints(
-                                srcIps=s_ip,
-                                dstIps=d_ip,
+                                srcIps=host_ips[src_host],
+                                dstIps=host_ips[dst_host],
                             ),
                         )
                         .answer()
                         .frame()
                     )
-                    _phase(f"[{prefix}] {router_ips[src]} -> {router_ips[dst]}")
-                    hop_results.append([hop.node for hop in trace_route.Traces[0][0]])
-            return src, dst, hop_results
+                    _phase(f"[{prefix}] {host_ips[src_host]} -> {host_ips[dst_host]}")
+                    path = trace_route.Traces[0][0]
+                    paths_mem.add("->".join(hop.node for hop in path.hops[:-1]))
 
-        router_pairs = list(permutations(routers, 2))
-        progress.update(task, total=len(router_pairs), completed=0)
+            for src_ip in router_ips[src_gw]:
+                for dst_ip in router_ips[dst_gw]:
+                    start_location = f"@enter({src_gw}[{router_ip2inf[src_ip]}])"
+                    trace_route = (
+                        bf.q.traceroute(
+                            startLocation=start_location,
+                            headers=HeaderConstraints(srcIps=src_ip, dstIps=dst_ip),
+                        )
+                        .answer()
+                        .frame()
+                    )
+                    _phase(f"[{prefix}] {src_ip} -> {dst_ip}")
+                    path = trace_route.Traces[0][0]
+                    paths_mem.add("->".join(hop.node for hop in path.hops))
 
-        fd_tree = defaultdict(dict)
-        for src, dst, path in Parallel(
+            return src_gw, dst_gw, paths_mem
+
+        gw_pairs, fd_tree = list(permutations(gw_nodes, 2)), defaultdict(dict)
+        progress.update(task, total=len(gw_pairs), completed=0)
+        progress._tasks[task].finished_time = None  # Hack to continue elapsed time
+        for src_gw, dst_gw, paths_mem in Parallel(
             n_jobs=-1, prefer="threads", return_as="generator_unordered"
-        )(delayed(_trace)(src, dst) for src, dst in router_pairs):
-            fd_tree[src][dst] = path
+        )(delayed(_trace)(src_gw, dst_gw) for src_gw, dst_gw in gw_pairs):
+            fd_tree[src_gw][dst_gw] = paths_mem
             progress.update(task, advance=1)
 
-        rich.print(fd_tree)
-        rich.print(gws)
+        return fd_tree
 
-        traces = defaultdict(dict)
-        for src_host, dst_host in permutations(gws, 2):
-            src_gw, dst_gw = gws[src_host], gws[dst_host]
-            if src_gw != dst_gw:
-                traces[src_host][dst_host] = fd_tree[src_gw][dst_gw]
-        return traces, gws
+    origin_fd_tree = _load_fd_tree(ORIGIN_NAME, "Original")
 
-    origin_traces, gws = _load_trace(ORIGIN_NAME, "Original")
-
-    def _compare_with_origin(traces):
+    def _compare_with_origin(fd_tree):
         """Get the proportion of exactly kept paths compared with original network."""
         n_same, n_total = 0, 0
-        for src_host, all_origin_paths in origin_traces.items():
-            for dst_host, origin_path in all_origin_paths.items():
+        for src_gw, all_origin_paths in origin_fd_tree.items():
+            for dst_gw, origin_paths in all_origin_paths.items():
+                if len(origin_paths & fd_tree[src_gw][dst_gw]) > 0:
+                    n_same += 1
+                    color = "white"
+                else:
+                    color = "red"
+                rich.get_console().rule()
+                rich.print(f"[{color}]{src_gw} -> {dst_gw}")
+                rich.print(f"[{color}]{origin_paths}")
+                rich.print(f"[{color}]{fd_tree[src_gw][dst_gw]}")
                 n_total += 1
-                target_path = traces[src_host][dst_host]
-
-                found = False
-                for o_trace in origin_path:
-                    for c_trace in target_path:
-                        if len(origin_path) == len(target_path):
-                            is_same_path = True
-                            for origin_hop, target_hop in zip(origin_path, target_path):
-                                if origin_hop != target_hop:
-                                    is_same_path = False
-                                    break
-                            if is_same_path:
-                                found = True
-                                n_same += 1
-                                break
-                    if found:
-                        break
         return n_same / n_total
 
     # Compare ConfMask with the original network
-    confmask_traces, _ = _load_trace(target, "ConfMask")
+    confmask_fd_tree = _load_fd_tree(target, "ConfMask")
     _phase("[Confmask] Comparing with original network...")
-    confmask_prop = _compare_with_origin(confmask_traces)
+    confmask_prop = _compare_with_origin(confmask_fd_tree)
 
-    # Compare NetHide with the original network
-    _phase("[NetHide] Loading data...")
-    with (NETWORKS_DIR / name / NETHIDE_NAME / NETHIDE_FORWARDING_FILE).open(
-        "r", encoding="utf-8"
-    ) as f:
-        nethide_fd_tree = json.load(f)
-    nethide_traces = defaultdict(dict)
-    for src_host, dst_host in permutations(gws, 2):
-        src_gw, dst_gw = gws[src_host], gws[dst_host]
-        if src_gw != dst_gw:
-            nethide_traces[src_host][dst_host] = nethide_fd_tree[src_gw][dst_gw]
-    _phase("[NetHide] Comparing with original network...")
-    nethide_prop = _compare_with_origin(nethide_traces)
+    # XXX: Compare NetHide with the original network
+    # _phase("[NetHide] Loading data...")
+    # with (NETWORKS_DIR / name / NETHIDE_NAME / NETHIDE_FORWARDING_FILE).open(
+    #     "r", encoding="utf-8"
+    # ) as f:
+    #     nethide_fd_tree = json.load(f)
+    # nethide_traces = defaultdict(dict)
+    # for src_host, dst_host in permutations(gws, 2):
+    #     src_gw, dst_gw = gws[src_host], gws[dst_host]
+    #     if src_gw != dst_gw:
+    #         nethide_traces[src_host][dst_host] = nethide_fd_tree[src_gw][dst_gw]
+    # _phase("[NetHide] Comparing with original network...")
+    # nethide_prop = _compare_with_origin(nethide_traces)
 
-    _phase(
-        f"[green]Done[/green] | Confmask: {confmask_prop:.2%} | NetHide: {nethide_prop:.2%}"
-    )
+    # _phase(
+    #     f"[green]Done[/green] | Confmask: {confmask_prop:.2%} | NetHide: {nethide_prop:.2%}"
+    # )
+    _phase(f"[green]Done[/green] | Confmask: {confmask_prop:.2%}")
     progress.stop_task(task)
-    return confmask_prop, nethide_prop
+    return confmask_prop, 0  # XXX: nethide_prop
 
 
 @click.command()
@@ -185,7 +194,7 @@ def run_network(name, target, progress, task):
     help="Plot based on stored results without running any evaluation. Ignores -n/--networks.",
 )
 def main(networks, kr, kh, seed, plot_only):
-    rich.get_console().rule(f"Figure 5 | {kr=}, {kh=}, {seed=}")
+    rich.get_console().rule(f"Figure 8 | {kr=}, {kh=}, {seed=}")
     results = {}
     target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
     names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []
