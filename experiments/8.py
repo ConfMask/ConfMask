@@ -139,13 +139,11 @@ def run_network(name, target, progress, task):
             for dst_gw, origin_paths in all_origin_paths.items():
                 if len(origin_paths & fd_tree[src_gw][dst_gw]) > 0:
                     n_same += 1
-                    color = "white"
                 else:
-                    color = "red"
-                rich.get_console().rule()
-                rich.print(f"[{color}]{src_gw} -> {dst_gw}")
-                rich.print(f"[{color}]{origin_paths}")
-                rich.print(f"[{color}]{fd_tree[src_gw][dst_gw]}")
+                    rich.get_console().rule()
+                    rich.print(f"{src_gw} -> {dst_gw}")
+                    rich.print(origin_paths)
+                    rich.print(fd_tree[src_gw][dst_gw])
                 n_total += 1
         return n_same / n_total
 
