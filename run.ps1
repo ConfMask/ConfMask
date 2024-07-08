@@ -53,3 +53,8 @@ python .\experiments\11.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
 python .\experiments\12.py --kr 6 --kh 2 --kh 4 --kh 6 --seed 0
 python .\experiments\13.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
 python .\experiments\14.py --kr 6 --kh 2 --kh 4 --seed 0
+python .\experiments\15.py --seed 0 `
+    -c 2,2,A -c 2,2,D -c 2,2,E `
+    -c 6,2,A -c 6,2,B -c 6,2,C -c 6,2,D -c 6,2,E -c 6,2,G `
+    -c 6,4,A -c 6,4,B -c 6,4,C `
+    -c 10,2,A -c 10,2,D -c 10,2,E

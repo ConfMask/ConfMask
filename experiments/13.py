@@ -68,6 +68,7 @@ def main(networks, kr, kh, seed):
                 width,
                 label=f"kR={_kr}",
             )
+        plt.ylim(0, 1)
         plt.ylabel("Configuration utility")
         plt.xticks(x + width * (len(kr) - 1) / 2, [f"Net{name}" for name in names])
         plt.legend()

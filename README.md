@@ -158,8 +158,17 @@ python ./experiments/14.py --kr 6 --kh 2 --kh 4 --seed 0
 
 ### Figure 15
 
+> [!NOTE]
+> This experiment relies on the results of [Figure 5](#figure-5). Moreover, comparing
+> across different networks and different sets of parameters may not imply strong
+> correlation; try controlling variables instead.
+
 ```bash
-python experiments/15.py --kr 6 --kh 2  # TODO
+python experiments/15.py --seed 0 \
+    -c 2,2,A -c 2,2,D -c 2,2,E \
+    -c 6,2,A -c 6,2,B -c 6,2,C -c 6,2,D -c 6,2,E -c 6,2,G \
+    -c 6,4,A -c 6,4,B -c 6,4,C \
+    -c 10,2,A -c 10,2,D -c 10,2,E
 ```
 
 ### Figure 16
