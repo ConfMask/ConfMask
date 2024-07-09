@@ -40,8 +40,6 @@ python ./experiments/gen.py --kr 10 --kh 2 --seed 0 -n G
 
 # Network H
 python ./experiments/gen.py --kr 2 --kh 2 --seed 0 -n H
-python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n H
-python ./experiments/gen.py --kr 10 --kh 2 --seed 0 -n H
 
 # Strawmans
 python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n A -a strawman1

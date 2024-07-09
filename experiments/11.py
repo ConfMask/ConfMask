@@ -12,7 +12,7 @@ import rich
 
 from config import CONFMASK_NAME, RESULTS_DIR
 
-SUPPORTED_NETWORKS = "ADEH"
+SUPPORTED_NETWORKS = "ADEG"
 
 
 @click.command()
