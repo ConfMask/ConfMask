@@ -287,7 +287,6 @@ class RouterConfigFile:
             self._contents["filter"][interface].insert(
                 0, _Line(f"ip prefix-list {filter_name} deny {prefix}\n")
             )
-            return
         elif protocol == "bgp":
             if neighbor not in self._contents["filter"]:
                 filter_no = len(self._contents["filter"]) + 1
@@ -304,6 +303,55 @@ class RouterConfigFile:
                     f"access-list {filter_no} deny {prefix.network_address} {prefix.hostmask}\n"
                 ),
             )
+
+    def strawman_add_filter(self, prefixes, interface, neighbor, protocol):
+        """Add filter to the configuration file, used in strawmans.
+
+        Parameters
+        ----------
+        prefixes : list of IPv4Network
+            The list of IP prefixes.
+        interface : str
+            The interface name.
+        neighbor : str
+            The neighbor IP address.
+        protocol : str
+            The routing protocol.
+        """
+        if protocol == "ospf":
+            assert interface is not None
+            if interface not in self._contents["filter"]:
+                filter_name = f"filter_{len(self._contents['filter']) + 1}"
+                self._contents["ospf"].append(
+                    _Line(f" distribute-list prefix {filter_name} in {interface}\n")
+                )
+                self._contents["filter"][interface] = [
+                    _Line(f"ip prefix-list {filter_name} permit 0.0.0.0/0 le 32\b")
+                ]
+            filter_name = self._contents["filter"][interface][-1].strip().split()[2]
+            self._contents["filter"][interface] = [
+                _Line(f"ip prefix-list {filter_name} deny {prefix}\n")
+                for prefix in prefixes
+            ] + self._contents["filter"][interface]
+        elif protocol == "bgp":
+            assert neighbor is not None
+            if neighbor not in self._contents["filter"]:
+                filter_no = len(self._contents["filter"]) + 1
+                self._contents["bgp"].append(
+                    _Line(f" neighbor {neighbor} distribute-list {filter_no} in\n")
+                )
+                self._contents["filter"][neighbor] = [
+                    _Line(f"access-list {filter_no} permit any\n")
+                ]
+            filter_no = self._contents["filter"][neighbor][-1].strip().split()[1]
+            self._contents["filter"][neighbor] = [
+                _Line(
+                    f"access-list {filter_no} deny {prefix.network_address} {prefix.hostmask}\n"
+                )
+                for prefix in prefixes
+            ] + self._contents["filter"][neighbor]
+        else:
+            assert False, f"{protocol} is not applicable"
 
     def incr_ospf_cost(self):
         """Increment OSPF cost of fake interfaces."""

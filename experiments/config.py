@@ -24,6 +24,8 @@ NETWORKS_DIR = Path(__file__).parent.parent / "networks"
 # Level 3: Different versions of the same network
 ORIGIN_NAME = "origin"
 CONFMASK_NAME = "confmask-kr{kr}-kh{kh}-seed{seed}"
+STRAWMAN1_NAME = "strawman1-kr{kr}-kh{kh}-seed{seed}"
+STRAWMAN2_NAME = "strawman2-kr{kr}-kh{kh}-seed{seed}"
 NETHIDE_NAME = "nethide"
 
 # Level 4: Different subdirectories for storing configurations

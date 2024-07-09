@@ -43,6 +43,20 @@ python ./experiments/gen.py --kr 2 --kh 2 --seed 0 -n H
 python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n H
 python ./experiments/gen.py --kr 10 --kh 2 --seed 0 -n H
 
+# Strawmans
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n A -a strawman1
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n A -a strawman2
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n C -a strawman1
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n C -a strawman2
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n D -a strawman1
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n D -a strawman2
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n E -a strawman1
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n E -a strawman2
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n F -a strawman1
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n F -a strawman2
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n H -a strawman1
+python ./experiments/gen.py --kr 6 --kh 2 --seed 0 -n H -a strawman2
+
 # Experiments
 python ./experiments/5.py --kr 6 --kh 2 --seed 0
 python ./experiments/5.py --kr 2 --kh 2 --seed 0

@@ -63,7 +63,7 @@ not want to start over.
 Run the ConfMask algorithm (required for all evaluations):
 
 ```bash
-# Repeat for `-n A` through `-n H`
+# See run.sh for minimum required ones to complete the evaluation suite
 python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A
 ```
 
@@ -71,7 +71,9 @@ Run the strawman algorithms (required for [Figure 10](#figure-10) and
 [Figure 16](#figure-16)):
 
 ```bash
-# TODO
+# See run.sh for minimum required ones to complete the evaluation suite
+python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A -a strawman1
+python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A -a strawman2
 ```
 
 ### Figure 5
