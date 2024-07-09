@@ -35,7 +35,7 @@ Pull the necessary docker images and run Batfish:
 
 ```bash
 docker pull batfish/allinone
-docker pull ghcr.io/nyu-netsys/confmask-config2spec:latest  # Used for Experiment 9 
+docker pull ghcr.io/confmask/confmask-config2spec:latest  # Used for Experiment 9 
 docker run --name batfish -v batfish-data:/data -p 8888:8888 -p 9997:9997 -p 9996:9996 batfish/allinone
 ```
 
