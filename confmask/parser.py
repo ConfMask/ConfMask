@@ -46,10 +46,12 @@ class _Line(str):
         instance.state = state
         return instance
 
-    def __repr__(self):
-        if self.state == 0:
-            return super().__repr__()
-        return f"\033[31m{super().__repr__()}\033[39m"
+    def line_repr(self):
+        """Representation of a line with a comment above if modified."""
+        if self.state == 1:
+            leading = self[: len(self) - len(self.lstrip())]
+            return f"{leading}!!! Modified\n{self}"
+        return self
 
 
 class RouterConfigFile:
@@ -168,12 +170,6 @@ class RouterConfigFile:
         addr_bytes = addr.split(".")
         network_addr = f"{addr_bytes[0]}.{addr_bytes[1]}.{addr_bytes[2]}.0"
 
-        if len(self._contents[protocol]) == 0:
-            if len(self._contents["ospf"]) > 0:
-                protocol = "ospf"
-            elif len(self._contents["bgp"]) > 0:
-                protocol = "bgp"
-
         if protocol == "ospf":
             group = None
             for ospf_line in self._contents["ospf"]:
@@ -266,12 +262,6 @@ class RouterConfigFile:
             protocol = "bgp"
         else:
             assert False, f"{protocol} is not applicable"
-
-        if len(self._contents[protocol]) == 0:
-            if len(self._contents["ospf"]) > 0:
-                protocol = "ospf"
-            elif len(self._contents["bgp"]) > 0:
-                protocol = "bgp"
 
         if protocol == "ospf":
             interface = next_hop.interface
@@ -422,33 +412,37 @@ class RouterConfigFile:
 
     def emit(self, dir):
         """Emit the configuration files to the given directory."""
-        lines = []
-        for block in self._contents["prolog"]:
-            lines.append("!\n")
-            lines.extend(block)
-        for block in self._contents["interface"]:
-            lines.append("!\n")
-            lines.extend(block)
-        if len(self._contents["ospf"]) > 0:
-            lines.append("!\n")
-            lines.extend(self._contents["ospf"])
-        if len(self._contents["bgp"]) > 0:
-            lines.append("!\n")
-            lines.extend(self._contents["bgp"])
-            if len(self._contents["bgp_address_family"]) > 0:
-                for block in self._contents["bgp_address_family"]:
-                    lines.append(" !\n")
-                    lines.extend(block)
-        if len(self._contents["filter"]) > 0:
-            for filter_lines in self._contents["filter"].values():
-                lines.append("!\n")
-                lines.extend(filter_lines)
-        for block in self._contents["epilog"]:
-            lines.append("!\n")
-            lines.extend(block)
-
         with (dir / f"{self._name_ori}.cfg").open("w", encoding="utf-8") as f:
-            f.writelines(lines)
+            for block in self._contents["prolog"]:
+                f.write("!\n")
+                for line in block:
+                    f.write(line.line_repr())
+            for block in self._contents["interface"]:
+                f.write("!\n")
+                for line in block:
+                    f.write(line.line_repr())
+            if len(self._contents["ospf"]) > 0:
+                f.write("!\n")
+                for line in self._contents["ospf"]:
+                    f.write(line.line_repr())
+            if len(self._contents["bgp"]) > 0:
+                f.write("!\n")
+                for line in self._contents["bgp"]:
+                    f.write(line.line_repr())
+                if len(self._contents["bgp_address_family"]) > 0:
+                    for block in self._contents["bgp_address_family"]:
+                        f.write("!\n")
+                        for line in block:
+                            f.write(line.line_repr())
+            if len(self._contents["filter"]) > 0:
+                for filter_lines in self._contents["filter"].values():
+                    f.write("!\n")
+                    for line in filter_lines:
+                        f.write(line.line_repr())
+            for block in self._contents["epilog"]:
+                f.write("!\n")
+                for line in block:
+                    f.write(line.line_repr())
 
     @property
     def name_ori(self):

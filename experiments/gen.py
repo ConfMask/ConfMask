@@ -459,7 +459,7 @@ class Strawman2(_Algorithm):
             n_done += 1
             self._phase(f"Tracing original routes ({n_done}/{n_total})...")
             paths_mem = [[hop.node for hop in path.hops[:-1]] for path in trace_info]
-            origin_traces[src_gw][dst_gw] = (paths_mem, defaultdict(bool))
+            origin_traces[src_gw][dst_gw] = paths_mem
 
         n_iteration, diff_flag = 0, True
         while diff_flag:
@@ -490,6 +490,9 @@ class Strawman2(_Algorithm):
                     f"[Iter/{n_iteration}] Comparing routes ({n_done}/{n_total})..."
                 )
 
+            if len(ospf_set) == 0:
+                break
+
             # TODO
             if self._protocol == "ospf" and len(ospf_set) > 0:
                 self._phase(f"[Iter/{n_iteration}] Incrementing OSPF cost...")
@@ -497,7 +500,6 @@ class Strawman2(_Algorithm):
                     self._R_map[node][1].incr_ospf_cost()
             else:
                 diff_flag, n_total = False, len(self._H_networks)
-
                 n_done, n_total = 0, len(gw_pairs)
                 for src_gw, dst_gw, trace_info in Parallel(
                     n_jobs=-1, prefer="threads", return_as="generator_unordered"
@@ -506,16 +508,13 @@ class Strawman2(_Algorithm):
                     self._phase(
                         f"[Iter/{n_iteration}] Tracing/Adjusting routes ({n_done}/{n_total})..."
                     )
-                    add_network = ipaddress.ip_network(gw_inf_map[dst_gw][0])
+                    dst_ip = gw_inf_map[dst_gw][0]
                     for path_info in trace_info:
                         matching_path_found = False
                         deviation = []  # (index in origin_paths_mem, first mismatch)
                         path = [hop.node for hop in path_info.hops[:-1]]
-                        origin_paths_mem, origin_solved = origin_traces[src_gw][dst_gw]
+                        origin_paths_mem = origin_traces[src_gw][dst_gw]
                         for idx, origin_path in enumerate(origin_paths_mem):
-                            if origin_solved[idx]:
-                                continue
-
                             first_mismatch = next(
                                 (
                                     i
@@ -528,7 +527,6 @@ class Strawman2(_Algorithm):
                             )
                             if first_mismatch is None:
                                 matching_path_found = True
-                                origin_solved[idx] = True
                                 break
                             deviation.append((idx, first_mismatch))
 
@@ -541,24 +539,29 @@ class Strawman2(_Algorithm):
                             # Modify the last matching hop
                             target_r = origin_paths_mem[mx_idx][mx_mismatch - 1]
                             if self._protocol == "ospf":
-                                for step in path_info[mx_idx].steps:
+                                for step in path_info[mx_mismatch - 1].steps:
                                     if step.action == "TRANSMITTED":
                                         next_hop_interface = step.detail.outputInterface
                                         self._R_map[target_r][1].strawman_add_filter(
-                                            [add_network],
+                                            [ipaddress.ip_network(dst_ip)],
                                             next_hop_interface,
                                             None,
                                             "ospf",
                                         )
                                         break
                             elif self._protocol == "bgp":
-                                for step in path_info[mx_idx].steps:
+                                for step in path_info[mx_mismatch - 1].steps:
                                     if step.action == "FORWARDED":
-                                        neighbor = (
-                                            step.detail.forwardingDetail.resolvedNextHopIp
-                                        )
-                                        self._R_map[target_r][1].strawman_add_filter(
-                                            [add_network], None, neighbor, "bgp"
+                                        neighbor = step.detail.routes[0].nextHop.ip
+                                        self._R_map[target_r][1].add_distribute_list(
+                                            # XXX: Hardcoded because we know our
+                                            # networks are /24; generalize if needed
+                                            ipaddress.ip_network(
+                                                f"{dst_ip}/24", strict=False
+                                            ),
+                                            None,
+                                            neighbor,
+                                            "bgp",
                                         )
                                         break
 
