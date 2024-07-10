@@ -294,7 +294,6 @@ class _Algorithm:
             return
         message = self.fix_routes()
         self.output(message)
-        print(self._rng.random())
 
 
 class ConfMask(_Algorithm):
