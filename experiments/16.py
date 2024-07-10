@@ -10,61 +10,48 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rich
 
-from config import (
-    RESULTS_DIR,
-    STATS_FILE,
-    NETWORKS_DIR,
-    PROTOCOL_MAPPING,
-    ALGORITHMS,
-    ANONYM_NAME,
-)
+import shared
+from config import RESULTS_DIR, STATS_FILE, NETWORKS_DIR, ALGORITHMS, ANONYM_NAME
 
 
 @click.command()
-@click.option(
-    "-n",
-    "--network",
-    required=True,
-    type=click.Choice(sorted(PROTOCOL_MAPPING)),
-    multiple=True,
-    help="Networks to evaluate.",
-)
-@click.option("--kr", required=True, type=int, help="Router anonymization degree.")
-@click.option("--kh", required=True, type=int, help="Host anonymization degree.")
-@click.option("--seed", required=True, type=int, help="Random seed.")
-def main(network, kr, kh, seed):
+@shared.cli_network(multiple=True)
+@shared.cli_kr()
+@shared.cli_kh()
+@shared.cli_seed()
+def main(networks, kr, kh, seed):
     rich.get_console().rule(f"Figure 16 | {kr=}, {kh=}, {seed=}")
     all_results = {}  # (algorithm, network) -> time
     missing = defaultdict(list)  # algorithm -> list of missing networks
 
     for algorithm in ALGORITHMS:
-        for _network in network:
+        for network in networks:
             target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
-            stats_path = NETWORKS_DIR / _network / target / STATS_FILE
-            if not stats_path.exists():
-                missing[algorithm].append(_network)
+            stats_file = NETWORKS_DIR / network / target / STATS_FILE
+            if not stats_file.exists():
+                missing[algorithm].append(network)
             else:
-                with stats_path.open("r", encoding="utf-8") as f:
+                with stats_file.open("r", encoding="utf-8") as f:
                     stats = json.load(f)
-                all_results[(algorithm, _network)] = stats["time_elapsed"]
+                all_results[(algorithm, network)] = stats["time_elapsed"]
 
     if len(missing) > 0:
         rich.print("[red]Some data are missing; try running:")
         for algorithm, missing_networks in missing.items():
             for missing_network in missing_networks:
-                rich.print(
-                    f"[red]>[/red] python experiments/gen.py --kr {kr} --kh {kh} --seed {seed} -n {missing_network} -a {algorithm}"
-                )
+                cmd = shared.get_gen_cmd(missing_network, algorithm, kr, kh, seed)
+                rich.print(f"[red]>[/red] {cmd}")
         return
 
     # Plot the graph
     if len(all_results) > 0:
-        x, width = np.arange(len(network)), 0.8 / len(ALGORITHMS)
+        save_name = ANONYM_NAME.format(algorithm="all", kr=kr, kh=kh, seed=seed)
+        x, width = np.arange(len(networks)), 0.8 / len(ALGORITHMS)
         plt.figure()
         for i, algorithm in enumerate(ALGORITHMS):
             plt.bar(
                 x + i * width,
-                [all_results[(algorithm, _network)] for _network in network],
+                [all_results[(algorithm, network)] for network in networks],
                 width,
                 label=algorithm.capitalize(),
             )
@@ -72,14 +59,11 @@ def main(network, kr, kh, seed):
         plt.yscale("log")
         plt.xticks(
             x + width * (len(ALGORITHMS) - 1) / 2,
-            [f"Net{_network}" for _network in network],
+            [f"Net{network}" for network in networks],
         )
         plt.legend()
         plt.tight_layout()
-        plt.savefig(
-            RESULTS_DIR
-            / f"16-{ANONYM_NAME.format(algorithm='all', kr=kr, kh=kh, seed=seed)}.png"
-        )
+        plt.savefig(RESULTS_DIR / f"16-{save_name}.png")
 
 
 if __name__ == "__main__":

@@ -10,73 +10,65 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rich
 
-from config import CONFMASK_NAME, RESULTS_DIR, NETWORKS_DIR, STATS_FILE
-
-SUPPORTED_NETWORKS = "ADEG"
+import shared
+from config import ANONYM_NAME, RESULTS_DIR, NETWORKS_DIR, STATS_FILE
 
 
 @click.command()
-@click.option(
-    "-n",
-    "--networks",
-    type=str,
-    default=SUPPORTED_NETWORKS,
-    show_default=True,
-    help="Networks to evaluate.",
-)
-@click.option("--kr", required=True, type=int, help="Router anonymization degree.")
-@click.option(
-    "--kh", required=True, type=int, multiple=True, help="Host anonymization degree."
-)
-@click.option("--seed", required=True, type=int, help="Random seed.")
-def main(networks, kr, kh, seed):
-    rich.get_console().rule(f"Figure 14 | {kr=}, kh={','.join(map(str, kh))}, {seed=}")
+@shared.cli_network(multiple=True)
+@shared.cli_algorithm()
+@shared.cli_kr()
+@shared.cli_kh(multiple=True)
+@shared.cli_seed()
+def main(networks, algorithm, kr, khs, seed):
+    rich.get_console().rule(
+        f"Figure 14 | {algorithm=}, {kr=}, kh={','.join(map(str, khs))}, {seed=}"
+    )
     all_results = {}  # (kr, kh, network) -> config utility
     missing = defaultdict(list)  # (kr, kh) -> list of missing networks
-    names = sorted(set(SUPPORTED_NETWORKS) & set(networks))
+    networks = sorted(networks)
 
-    for _kh in kh:
-        target = CONFMASK_NAME.format(kr=kr, kh=_kh, seed=seed)
-        for name in names:
-            stats_path = NETWORKS_DIR / name / target / STATS_FILE
-            if not stats_path.exists():
-                missing[(kr, _kh)].append(name)
+    for kh in khs:
+        target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
+        for network in networks:
+            stats_file = NETWORKS_DIR / network / target / STATS_FILE
+            if not stats_file.exists():
+                missing[(kr, kh)].append(network)
             else:
-                with stats_path.open("r", encoding="utf-8") as f:
+                with stats_file.open("r", encoding="utf-8") as f:
                     stats = json.load(f)
-                all_results[(kr, _kh, name)] = 1 - sum(
+                all_results[(kr, kh, network)] = 1 - sum(
                     stats["config_lines_modified"].values()
                 ) / sum(stats["config_lines_total"].values())
 
     if len(missing) > 0:
         rich.print("[red]Some data are missing; try running:")
-        for (kr, _kh), names in missing.items():
-            for name in names:
-                rich.print(
-                    f"[red]>[/red] python experiments/gen.py --kr {kr} --kh {_kh} --seed {seed} -n {name}"
-                )
+        for (kr, kh), missing_networks in missing.items():
+            for missing_network in missing_networks:
+                cmd = shared.get_gen_cmd(missing_network, algorithm, kr, kh, seed)
+                rich.print(f"[red]>[/red] {cmd}")
         return
 
     # Plot the graph
     if len(all_results) > 0:
-        x, width = np.arange(len(names)), 0.8 / len(kh)
+        save_name = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh="", seed=seed)
+        x, width = np.arange(len(networks)), 0.8 / len(khs)
         plt.figure()
-        for i, _kh in enumerate(kh):
+        for i, kh in enumerate(khs):
             plt.bar(
                 x + i * width,
-                [all_results[(kr, _kh, name)] for name in names],
+                [all_results[(kr, kh, network)] for network in networks],
                 width,
-                label=f"kH={_kh}",
+                label=f"kH={kh}",
             )
         plt.ylim(0, 1)
         plt.ylabel("Configuration utility")
-        plt.xticks(x + width * (len(kh) - 1) / 2, [f"Net{name}" for name in names])
+        plt.xticks(
+            x + width * (len(khs) - 1) / 2, [f"Net{network}" for network in networks]
+        )
         plt.legend()
         plt.tight_layout()
-        plt.savefig(
-            RESULTS_DIR
-            / f"14-{CONFMASK_NAME.format(kr=kr, kh='_'.join(map(str, kh)), seed=seed)}.png"
-        )
+        plt.savefig(RESULTS_DIR / f"14-{save_name}.png")
 
 
 if __name__ == "__main__":

@@ -10,72 +10,64 @@ import matplotlib.pyplot as plt
 import numpy as np
 import rich
 
-from config import CONFMASK_NAME, RESULTS_DIR
-
-SUPPORTED_NETWORKS = "ADEG"
+import shared
+from config import ANONYM_NAME, RESULTS_DIR
 
 
 @click.command()
-@click.option(
-    "-n",
-    "--networks",
-    type=str,
-    default=SUPPORTED_NETWORKS,
-    show_default=True,
-    help="Networks to evaluate.",
-)
-@click.option(
-    "--kr", required=True, type=int, multiple=True, help="Router anonymization degree."
-)
-@click.option("--kh", required=True, type=int, help="Host anonymization degree.")
-@click.option("--seed", required=True, type=int, help="Random seed.")
-def main(networks, kr, kh, seed):
-    rich.get_console().rule(f"Figure 11 | kr={','.join(map(str, kr))}, {kh=}, {seed=}")
+@shared.cli_network(multiple=True)
+@shared.cli_algorithm()
+@shared.cli_kr(multiple=True)
+@shared.cli_kh()
+@shared.cli_seed()
+def main(networks, algorithm, krs, kh, seed):
+    rich.get_console().rule(
+        f"Figure 11 | {algorithm=}, kr={','.join(map(str, krs))}, {kh=}, {seed=}"
+    )
     all_results = {}  # (kr, kh, network) -> route anonymity
     missing = defaultdict(list)  # (kr, kh) -> list of missing networks
-    names = sorted(set(SUPPORTED_NETWORKS) & set(networks))
+    networks = sorted(networks)
 
-    for _kr in kr:
-        target = CONFMASK_NAME.format(kr=_kr, kh=kh, seed=seed)
+    for kr in krs:
+        target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
         results_file = RESULTS_DIR / f"5-{target}.json"
         if not results_file.exists():
-            missing[(_kr, kh)] = names
+            missing[(kr, kh)] = networks
         else:
             with results_file.open("r", encoding="utf-8") as f:
                 results = json.load(f)
-            for name in names:
-                if name not in results:
-                    missing[(_kr, kh)].append(name)
+            for network in networks:
+                if network not in results:
+                    missing[(kr, kh)].append(network)
                 else:
-                    all_results[(_kr, kh, name)] = results[name]
+                    all_results[(kr, kh, network)] = results[network]
 
     if len(missing) > 0:
-        rich.print("[red]Data are missing from Experiment 5; try running:")
-        for (_kr, kh), names in missing.items():
-            rich.print(
-                f"[red]>[/red] python experiments/5.py --kr {_kr} --kh {kh} --seed {seed} -n {''.join(names)}"
-            )
+        rich.print("[red]Some data are missing; try running:")
+        for (kr, kh), missing_networks in missing.items():
+            cmd = shared.get_5_cmd(missing_networks, algorithm, kr, kh, seed)
+            rich.print(f"[red]>[/red] {cmd}")
         return
 
     # Plot the graph
     if len(all_results) > 0:
-        x, width = np.arange(len(names)), 0.8 / len(kr)
+        save_name = ANONYM_NAME.format(algorithm=algorithm, kr="", kh=kh, seed=seed)
+        x, width = np.arange(len(networks)), 0.8 / len(krs)
         plt.figure()
-        for i, _kr in enumerate(kr):
+        for i, kr in enumerate(krs):
             plt.bar(
                 x + i * width,
-                [all_results[(_kr, kh, name)] for name in names],
+                [all_results[(kr, kh, network)] for network in networks],
                 width,
-                label=f"kR={_kr}",
+                label=f"kR={kr}",
             )
         plt.ylabel("Route anonymity")
-        plt.xticks(x + width * (len(kr) - 1) / 2, [f"Net{name}" for name in names])
+        plt.xticks(
+            x + width * (len(krs) - 1) / 2, [f"Net{network}" for network in networks]
+        )
         plt.legend()
         plt.tight_layout()
-        plt.savefig(
-            RESULTS_DIR
-            / f"11-{CONFMASK_NAME.format(kr='_'.join(map(str, kr)), kh=kh, seed=seed)}.png"
-        )
+        plt.savefig(RESULTS_DIR / f"11-{save_name}.png")
 
 
 if __name__ == "__main__":

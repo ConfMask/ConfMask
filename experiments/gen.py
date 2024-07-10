@@ -18,6 +18,7 @@ from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
 from pybatfish.datamodel.primitives import Interface
 
+import shared
 from config import (
     NETWORKS_DIR,
     ORIGIN_NAME,
@@ -78,12 +79,12 @@ def _diff_routes(r, host_rib, host_rib_, H_networks):
 class _Algorithm:
     """The algorithm interface."""
 
-    def __init__(self, network, kr, kh, seed, force, progress, task):
+    def __init__(self, network, kr, kh, seed, force_overwrite, progress, task):
         self.network = network
         self.kr = kr
         self.kh = kh
         self.seed = seed
-        self.force = force
+        self.force_overwrite = force_overwrite
         self.progress = progress
         self.task = task
 
@@ -110,7 +111,7 @@ class _Algorithm:
 
         # Clean up and prepare the target directory
         target_dir = network_dir / self.target_name
-        if target_dir.exists() and not self.force:
+        if target_dir.exists() and not self.force_overwrite:
             self._phase("[yellow]Skipped")
             return True  # Skip the task
         self._phase("Cleaning up target directory...")
@@ -574,41 +575,29 @@ class Strawman2(_Algorithm):
 
 
 @click.command()
-@click.option(
-    "-n",
-    "--network",
-    type=click.Choice(list("ABCDEFGH")),
-    required=True,
-    help="Network to run.",
-)
-@click.option(
-    "-a",
-    "--algorithm",
-    type=click.Choice(["confmask", "strawman1", "strawman2"]),
-    default="confmask",
-    help="Algorithm to run.",
-)
-@click.option("--kr", required=True, type=int, help="Router anonymization degree.")
-@click.option("--kh", required=True, type=int, help="Host anonymization degree.")
-@click.option("--seed", required=True, type=int, help="Random seed.")
-@click.option("-f", "--force", is_flag=True, help="Force overwrite existing data.")
-def main(network, algorithm, kr, kh, seed, force):
+@shared.cli_network()
+@shared.cli_algorithm()
+@shared.cli_kr()
+@shared.cli_kh()
+@shared.cli_seed()
+@shared.cli_force_overwrite()
+def main(network, algorithm, kr, kh, seed, force_overwrite):
     with Progress(TimeElapsedColumn(), TextColumn("{task.description}")) as progress:
         task = progress.add_task(
             f"[{network}] Starting...",
             total=None,
-            params=f"{algorithm}, {kr=}, {kh=}, {seed=}",
+            params=f"{algorithm=}, {kr=}, {kh=}, {seed=}",
         )
         try:
-            if algorithm == "confmask":
-                AlgClass = ConfMask
-            elif algorithm == "strawman1":
+            if algorithm == "strawman1":
                 AlgClass = Strawman1
             elif algorithm == "strawman2":
                 AlgClass = Strawman2
+            elif algorithm == "confmask":
+                AlgClass = ConfMask
             else:
                 raise NotImplementedError  # unreachable
-            alg = AlgClass(network, kr, kh, seed, force, progress, task)
+            alg = AlgClass(network, kr, kh, seed, force_overwrite, progress, task)
             alg.run()
         except Exception:
             # Remove the target directory and print traceback on error
