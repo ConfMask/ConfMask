@@ -11,6 +11,12 @@ _router_ids = set()
 _host_ids = set()
 
 
+def clear_device_ids():
+    """Clear the used router and host IDs."""
+    _router_ids.clear()
+    _host_ids.clear()
+
+
 def _generate_router_id(rng):
     """Generate a unique router ID."""
     rid = rng.integers(100, 1000, dtype=int)

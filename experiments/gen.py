@@ -8,8 +8,9 @@ from itertools import permutations
 import click
 import numpy as np
 import pandas as pd
-from confmask.ip import generate_unicast_ip
-from confmask.parser import HostConfigFile, RouterConfigFile
+import rich
+from confmask.ip import generate_unicast_ip, clear_used_ips
+from confmask.parser import HostConfigFile, RouterConfigFile, clear_device_ids
 from confmask.topology import k_degree_anonymization
 from confmask.utils import analyze_topology
 from joblib import Parallel, delayed
@@ -22,14 +23,12 @@ import shared
 from config import (
     NETWORKS_DIR,
     ORIGIN_NAME,
-    CONFMASK_NAME,
+    ANONYM_NAME,
     PROTOCOL_MAPPING,
     ROUTERS_SUBDIR,
     HOSTS_SUBDIR,
     STATS_FILE,
     BF_HOST,
-    STRAWMAN1_NAME,
-    STRAWMAN2_NAME,
 )
 
 bf = Session(host=BF_HOST)
@@ -104,15 +103,18 @@ class _Algorithm:
         skipped : bool
             Whether the task is skipped.
         """
+        self.progress.start_task(self.task)
+
         network_dir = NETWORKS_DIR / self.network
         protocol = PROTOCOL_MAPPING[self.network]
-        rng = np.random.default_rng([self.seed, ord(self.network)])
+        rng = np.random.default_rng(self.seed)
         start_time = time.perf_counter()
 
         # Clean up and prepare the target directory
         target_dir = network_dir / self.target_name
         if target_dir.exists() and not self.force_overwrite:
             self._phase("[yellow]Skipped")
+            self.progress.stop_task(self.task)
             return True  # Skip the task
         self._phase("Cleaning up target directory...")
         router_config_dir = target_dir / ROUTERS_SUBDIR
@@ -292,6 +294,7 @@ class _Algorithm:
             return
         message = self.fix_routes()
         self.output(message)
+        print(self._rng.random())
 
 
 class ConfMask(_Algorithm):
@@ -299,7 +302,9 @@ class ConfMask(_Algorithm):
 
     @property
     def target_name(self):
-        return CONFMASK_NAME.format(kr=self.kr, kh=self.kh, seed=self.seed)
+        return ANONYM_NAME.format(
+            algorithm="confmask", kr=self.kr, kh=self.kh, seed=self.seed
+        )
 
     def fix_routes(self):
         n_iteration, diff_flag = 0, True
@@ -406,7 +411,9 @@ class Strawman1(_Algorithm):
 
     @property
     def target_name(self):
-        return STRAWMAN1_NAME.format(kr=self.kr, kh=self.kh, seed=self.seed)
+        return ANONYM_NAME.format(
+            algorithm="strawman1", kr=self.kr, kh=self.kh, seed=self.seed
+        )
 
     def fix_routes(self):
         self._phase("Adding filters...")
@@ -424,7 +431,9 @@ class Strawman2(_Algorithm):
 
     @property
     def target_name(self):
-        return STRAWMAN2_NAME.format(kr=self.kr, kh=self.kh, seed=self.seed)
+        return ANONYM_NAME.format(
+            algorithm="strawman2", kr=self.kr, kh=self.kh, seed=self.seed
+        )
 
     def fix_routes(self):
         gw_inf_map = {
@@ -575,40 +584,51 @@ class Strawman2(_Algorithm):
 
 
 @click.command()
-@shared.cli_network()
+@shared.cli_network(multiple=True)
 @shared.cli_algorithm()
 @shared.cli_kr()
 @shared.cli_kh()
 @shared.cli_seed()
 @shared.cli_force_overwrite()
-def main(network, algorithm, kr, kh, seed, force_overwrite):
-    with Progress(TimeElapsedColumn(), TextColumn("{task.description}")) as progress:
-        task = progress.add_task(
-            f"[{network}] Starting...",
-            total=None,
-            params=f"{algorithm=}, {kr=}, {kh=}, {seed=}",
-        )
-        try:
-            if algorithm == "strawman1":
-                AlgClass = Strawman1
-            elif algorithm == "strawman2":
-                AlgClass = Strawman2
-            elif algorithm == "confmask":
-                AlgClass = ConfMask
-            else:
-                raise NotImplementedError  # unreachable
-            alg = AlgClass(network, kr, kh, seed, force_overwrite, progress, task)
-            alg.run()
-        except Exception:
-            # Remove the target directory and print traceback on error
-            progress.update(task, description=f"[{network}] [red]Error")
-            progress.stop_task(task)
-            target_dir = (
-                NETWORKS_DIR / network / CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
-            )
-            if target_dir.exists():
-                shutil.rmtree(target_dir)
-            progress.console.print_exception()
+def main(networks, algorithm, kr, kh, seed, force_overwrite):
+    rich.get_console().rule(f"Generate | {algorithm=}, {kr=}, {kh=}, {seed=}")
+    networks = sorted(networks)
+
+    with Progress(
+        TimeElapsedColumn(),
+        TextColumn("{task.description}"),
+    ) as progress:
+        tasks = {
+            network: progress.add_task(f"[{network}] (queued)", start=False, total=None)
+            for network in networks
+        }
+        for network in networks:
+            clear_device_ids()
+            clear_used_ips()
+            task = tasks[network]
+
+            try:
+                if algorithm == "strawman1":
+                    AlgClass = Strawman1
+                elif algorithm == "strawman2":
+                    AlgClass = Strawman2
+                elif algorithm == "confmask":
+                    AlgClass = ConfMask
+                else:
+                    raise NotImplementedError  # unreachable
+                alg = AlgClass(network, kr, kh, seed, force_overwrite, progress, task)
+                alg.run()
+
+            except Exception:
+                # Remove the target directory and print traceback on error
+                progress.update(task, description=f"[{network}] [red]Error")
+                progress.stop_task(task)
+                name = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
+                target_dir = NETWORKS_DIR / network / name
+                if target_dir.exists():
+                    shutil.rmtree(target_dir)
+                progress.console.print(f"[red]Error in network {network}")
+                progress.console.print_exception()
 
 
 if __name__ == "__main__":

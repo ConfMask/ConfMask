@@ -2,24 +2,25 @@
 Preserved network specifications via Config2Spec
 """
 
-import json
-
-import click
 import glob
 import ipaddress
-import matplotlib.pyplot as plt
-import numpy as np
+import json
 import os
 import pickle
 import subprocess
-from experiments.nethide_c2s_convert import save_forwarding_to_c2s_fib
+
+import click
+import matplotlib.pyplot as plt
+import numpy as np
+import rich
 from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session, HeaderConstraints
 from pybatfish.datamodel.flow import PathConstraints
 
+import shared
 from config import (
     NETWORKS_DIR,
-    CONFMASK_NAME,
+    ANONYM_NAME,
     RESULTS_DIR,
     ORIGIN_NAME,
     NETHIDE_NAME,
@@ -28,22 +29,21 @@ from config import (
     PROTOCOL_MAPPING,
     BF_HOST,
 )
+from nethide_c2s_convert import save_forwarding_to_c2s_fib
 
-SUPPORTED_NETWORKS = "ABCDG"
 CONFIG2SPEC_IMAGE = "ghcr.io/confmask/confmask-config2spec:latest"
 bf = Session(host=BF_HOST)
 
 
-def run_network(name, target, progress, task):
+def run_network(network, target, progress, task):
     """Execute the experiment for a single network."""
     progress.start_task(task)
 
-    _read_fd = lambda file: json.load(
-        (NETWORKS_DIR / name / NETHIDE_NAME / file).open("r", encoding="utf-8")
-    )
+    def _read_fd(file):
+        return json.load((NETWORKS_DIR / network / NETHIDE_NAME / file).open("r", encoding="utf-8"))
 
     def _phase(description):
-        progress.update(task, description=f"[{name}] {description}")
+        progress.update(task, description=f"[{network}] {description}")
 
     def _extract_specs(target, mode="full-policies"):
         """
@@ -54,15 +54,14 @@ def run_network(name, target, progress, task):
             mode (str): The mode to run Config2Spec in. Either `confmask/full-policies` or `confmask/nethide-specs`.
 
         """
-        _read_existed_specs = lambda file: set(open(file, "r").read().splitlines()[1:])
+
+        def _read_existed_specs(file):
+            return set(open(file, "r").read().splitlines()[1:])
+
         if os.path.exists(f"{target}/policies-{mode}.csv"):
             return _read_existed_specs(f"{target}/policies-{mode}.csv")
 
         # Extract the network specifications to `policies.csv` with Config2Spec
-        # print("Docker command:", " ".join([
-        #     "docker", "run", "-it", "--rm", "-v", f"{target}:/snapshot", CONFIG2SPEC_IMAGE,
-        #     "/ae.sh", f"confmask/{mode}", "/snapshot"
-        # ]))
         subprocess.run(
             [
                 "docker",
@@ -71,7 +70,7 @@ def run_network(name, target, progress, task):
                 "--rm",
                 "-v",
                 f"{target}:/snapshot",
-                CONFIG2SPEC_IMAGE,
+                "ghcr.io/confmask/confmask-config2spec:latest",
                 "/ae.sh",
                 f"confmask/{mode}",
                 "/snapshot",
@@ -85,7 +84,9 @@ def run_network(name, target, progress, task):
         return _read_existed_specs(f"{target}/policies-{mode}.csv")
 
     def _verify_extracted_specs(target, specs):
-        _read_existed_specs = lambda file: set(open(file, "r").read().splitlines())
+        def _read_existed_specs(file):
+            return set(open(file, "r").read().splitlines())
+
         if os.path.exists(f"{target}/policies-HOLDS.csv"):
             return _read_existed_specs(
                 f"{target}/policies-HOLDS.csv"
@@ -110,7 +111,6 @@ def run_network(name, target, progress, task):
             _phase(f"[Config2Spec-PostVerify] Verifying spec {i}/{specs_count}")
             policy_type = spec.split(",")[0]
             src_name = spec.split(",")[3]
-            dst_name = spec.split(",")[-2].split(":")[0][1:]
             dst_pfx = spec.split(",")[1]
             result = (
                 bf.q.reachability(
@@ -192,15 +192,17 @@ def run_network(name, target, progress, task):
 
     def _find_in_lines(needle, search):
         diff_specs = []
-        for i, l in enumerate(search.splitlines() if type(search) is str else search):
+        for i, l in enumerate(
+            search.splitlines() if isinstance(search, str) else search
+        ):
             # print(needle.__str__())
             if needle.__str__() in l:
                 diff_specs.append(l)
                 # print(f"Found {needle} in line {i}:", l)
         return diff_specs
 
-    ORIGIN_SNAPSHOT_PATH = str(NETWORKS_DIR / name / ORIGIN_NAME)
-    TARGET_SNAPSHOT_PATH = str(NETWORKS_DIR / name / target)
+    ORIGIN_SNAPSHOT_PATH = str(NETWORKS_DIR / network / ORIGIN_NAME)
+    TARGET_SNAPSHOT_PATH = str(NETWORKS_DIR / network / target)
 
     result = {}
 
@@ -238,7 +240,7 @@ def run_network(name, target, progress, task):
     target_specs = _extract_specs(TARGET_SNAPSHOT_PATH)
 
     # Config2Spec has issues supporting BGP configs that test dataset has, so we use batfish to verify the extracted specs
-    if PROTOCOL_MAPPING[name] == "bgp":
+    if PROTOCOL_MAPPING[network] == "bgp":
         origin_specs, _ = _verify_extracted_specs(ORIGIN_SNAPSHOT_PATH, origin_specs)
         target_specs, _ = _verify_extracted_specs(TARGET_SNAPSHOT_PATH, target_specs)
 
@@ -299,41 +301,33 @@ def run_network(name, target, progress, task):
 
 
 @click.command()
-@click.option(
-    "-n",
-    "--networks",
-    type=str,
-    default=SUPPORTED_NETWORKS,
-    show_default=True,
-    help="Networks to evaluate.",
-)
-@click.option("--kr", required=True, type=int, help="Router anonymization degree.")
-@click.option("--kh", required=True, type=int, help="Host anonymization degree.")
-@click.option("--seed", required=True, type=int, help="Random seed.")
-@click.option(
-    "--plot-only",
-    is_flag=True,
-    help="Plot based on stored results without running any evaluation. Ignores -n/--networks.",
-)
-def main(networks, kr, kh, seed, plot_only):
+@shared.cli_network(multiple=True)
+@shared.cli_algorithm()
+@shared.cli_kr()
+@shared.cli_kh()
+@shared.cli_seed()
+@shared.cli_plot_only()
+def main(networks, algorithm, kr, kh, seed, plot_only):
+    rich.get_console().rule(f"Figure 9 | {algorithm=}, {kr=}, {kh=}, {seed=}")
     results = {}
-    target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
-    names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []
+    target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
+    networks = sorted(networks) if not plot_only else []
 
-    if len(names) > 0:
+    if len(networks) > 0:
         with Progress(
             TimeElapsedColumn(),
             TaskProgressColumn(),
             TextColumn("{task.description}"),
         ) as progress:
             tasks = {
-                name: progress.add_task(f"[{name}] (queued)", start=False, total=None)
-                for name in names
+                network: progress.add_task(
+                    f"[{network}] (queued)", start=False, total=None
+                )
+                for network in networks
             }
-
-            for name in names:
-                result = run_network(name, target, progress, tasks[name])
-                results[name] = result
+            for network in networks:
+                result = run_network(network, target, progress, tasks[network])
+                results[network] = result
 
     # Merge results with existing (if any)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -347,10 +341,9 @@ def main(networks, kr, kh, seed, plot_only):
 
     # Extract the data for the plot
     cm_anonym, cm_kept, cm_fneg, cm_fpos, cm_base = [], [], [], [], []
-    nh_kept, nh_fpos, nh_fneg, nh_base = [], [], [], []
+    nh_kept, nh_fpos, nh_fneg = [], [], []
 
     for net in all_results:
-        # print(all_results[net])
         cm_anonym.append(all_results[net]["confmask"]["fpos_fakedst_ratio"])
         cm_kept.append(all_results[net]["confmask"]["kept_ratio"])
         cm_fneg.append(all_results[net]["confmask"]["fneg_ratio"])
