@@ -30,7 +30,7 @@ from config import (
 )
 
 SUPPORTED_NETWORKS = "ABCDG"
-CONFIG2SPEC_IMAGE = "ghcr.io/nyu-netsys/confmask-config2spec:latest"
+CONFIG2SPEC_IMAGE = "ghcr.io/confmask/confmask-config2spec:latest"
 bf = Session(host=BF_HOST)
 
 
