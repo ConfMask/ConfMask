@@ -586,7 +586,7 @@ class Strawman2(_Algorithm):
     "--algorithm",
     type=click.Choice(["confmask", "strawman1", "strawman2"]),
     default="confmask",
-    help="Algorithm to use.",
+    help="Algorithm to run.",
 )
 @click.option("--kr", required=True, type=int, help="Router anonymization degree.")
 @click.option("--kh", required=True, type=int, help="Host anonymization degree.")

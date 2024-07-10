@@ -14,7 +14,7 @@ from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedC
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
 
-from config import NETWORKS_DIR, CONFMASK_NAME, RESULTS_DIR, BF_HOST
+from config import NETWORKS_DIR, RESULTS_DIR, BF_HOST, ANONYM_NAME
 
 SUPPORTED_NETWORKS = "ABCDEFGH"
 bf = Session(host=BF_HOST)
@@ -102,6 +102,13 @@ def run_network(name, target, progress, task):
     show_default=True,
     help="Networks to evaluate.",
 )
+@click.option(
+    "-a",
+    "--algorithm",
+    type=click.Choice(["confmask", "strawman1", "strawman2"]),
+    default="confmask",
+    help="Algorithm to evaluate.",
+)
 @click.option("--kr", required=True, type=int, help="Router anonymization degree.")
 @click.option("--kh", required=True, type=int, help="Host anonymization degree.")
 @click.option("--seed", required=True, type=int, help="Random seed.")
@@ -110,10 +117,10 @@ def run_network(name, target, progress, task):
     is_flag=True,
     help="Plot based on stored results without running any evaluation. Ignores -n/--networks.",
 )
-def main(networks, kr, kh, seed, plot_only):
-    rich.get_console().rule(f"Figure 5 | {kr=}, {kh=}, {seed=}")
+def main(networks, algorithm, kr, kh, seed, plot_only):
+    rich.get_console().rule(f"Figure 5 | {algorithm=}, {kr=}, {kh=}, {seed=}")
     results = {}
-    target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
+    target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []
 
     if len(names) > 0:

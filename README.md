@@ -124,8 +124,11 @@ python experiments/9.py --kr 6 --kh 2 --seed 0
 
 ### Figure 10
 
+> [!NOTE]
+> This experiment relies on the results of [Figure 5](#figure-5).
+
 ```bash
-python experiments/10.py --kr 6 --kh 2  # TODO
+python ./experiments/10.py --kr 6 --kh 2 --seed 0 -n A
 ```
 
 ### Figure 11

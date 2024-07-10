@@ -5,6 +5,9 @@ BF_HOST = "localhost"
 # Results directory
 RESULTS_DIR = Path(__file__).parent / "results"
 
+# All supported algorithms
+ALGORITHMS = ["strawman1", "strawman2", "confmask"]
+
 # Mapping from network name to the corresponding protocol; note that all networks used
 # in the experiments have OSPF so "bgp" actually means BGP+OSPF
 PROTOCOL_MAPPING = {
@@ -23,9 +26,10 @@ NETWORKS_DIR = Path(__file__).parent.parent / "networks"
 
 # Level 3: Different versions of the same network
 ORIGIN_NAME = "origin"
-CONFMASK_NAME = "confmask-kr{kr}-kh{kh}-seed{seed}"
-STRAWMAN1_NAME = "strawman1-kr{kr}-kh{kh}-seed{seed}"
-STRAWMAN2_NAME = "strawman2-kr{kr}-kh{kh}-seed{seed}"
+ANONYM_NAME = "{algorithm}-kr{kr}-kh{kh}-seed{seed}"
+CONFMASK_NAME = "confmask-kr{kr}-kh{kh}-seed{seed}"  # XXX: replace with ANONYM_NAME
+STRAWMAN1_NAME = "strawman1-kr{kr}-kh{kh}-seed{seed}"  # XXX: replace with ANONYM_NAME
+STRAWMAN2_NAME = "strawman2-kr{kr}-kh{kh}-seed{seed}"  # XXX: replace with ANONYM_NAME
 NETHIDE_NAME = "nethide"
 
 # Level 4: Different subdirectories for storing configurations
