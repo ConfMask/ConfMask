@@ -179,5 +179,5 @@ python experiments/15.py --seed 0 \
 ### Figure 16
 
 ```bash
-python experiments/16.py --kr 6 --kh 2  # TODO
+python experiments/16.py --kr 6 --kh 2 --seed 0 -n A -n C -n D -n E -n F -n H
 ```

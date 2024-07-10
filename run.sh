@@ -73,3 +73,4 @@ python experiments/15.py --seed 0 \
     -c 6,2,A -c 6,2,B -c 6,2,C -c 6,2,D -c 6,2,E -c 6,2,G \
     -c 6,4,A -c 6,4,B -c 6,4,C \
     -c 10,2,A -c 10,2,D -c 10,2,E
+python ./experiments/16.py --kr 6 --kh 2 --seed 0 -n A -n C -n D -n E -n F -n H

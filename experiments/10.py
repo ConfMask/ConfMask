@@ -22,8 +22,8 @@ from config import (
 @click.option(
     "-n",
     "--network",
+    required=True,
     type=click.Choice(list(PROTOCOL_MAPPING)),
-    show_default=True,
     help="Network to evaluate.",
 )
 @click.option("--kr", required=True, type=int, help="Router anonymization degree.")
@@ -88,7 +88,7 @@ def main(network, kr, kh, seed):
         plt.tight_layout()
         plt.savefig(
             RESULTS_DIR
-            / f"10-{ANONYM_NAME.format(algorithm=network, kr=kr, kh=kh, seed=seed)}.png"
+            / f"10-{ANONYM_NAME.format(algorithm='all', kr=kr, kh=kh, seed=seed)}-{network}.png"
         )
 
 
