@@ -190,15 +190,6 @@ class _Algorithm:
         # Generate fake interfaces on both ends of each additional edge
         self._phase("Generating fake interfaces...")
         fake_interfaces = defaultdict(list)  # Maps node -> (interface name, remote IP)
-
-        def _add_fake(n, ip, edge_cost):
-            """Add fake interface and router protocol configurations."""
-            rcf = R_map[n][1]
-            interface_name = rcf.add_interface(ip, protocol, edge_cost)
-            fake_interfaces[n].append((interface_name, ip))
-            rcf.add_network(ip, protocol)
-            return rcf
-
         for u, v in new_edges:
             u_ip_bytes = generate_unicast_ip(rng)
             v_ip_bytes = generate_unicast_ip(
@@ -207,8 +198,13 @@ class _Algorithm:
             u_ip, v_ip = ".".join(map(str, u_ip_bytes)), ".".join(map(str, v_ip_bytes))
 
             edge_cost = None if metric_map is None else metric_map[(u, v)]
-            u_rcf = _add_fake(u, u_ip, edge_cost)
-            v_rcf = _add_fake(v, v_ip, edge_cost)
+            u_rcf, v_rcf = R_map[u][1], R_map[v][1]
+            u_interface_name = u_rcf.add_interface(u_ip, protocol, edge_cost)
+            v_interface_name = v_rcf.add_interface(v_ip, protocol, edge_cost)
+            fake_interfaces[u].append((u_interface_name, v_ip))
+            fake_interfaces[v].append((v_interface_name, u_ip))
+            u_rcf.add_network(u_ip, protocol)
+            v_rcf.add_network(v_ip, protocol)
 
             if (
                 protocol == "bgp"
