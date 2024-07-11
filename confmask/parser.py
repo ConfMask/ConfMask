@@ -176,6 +176,12 @@ class RouterConfigFile:
         addr_bytes = addr.split(".")
         network_addr = f"{addr_bytes[0]}.{addr_bytes[1]}.{addr_bytes[2]}.0"
 
+        if len(self._contents[protocol]) == 0:
+            if len(self._contents["ospf"]) > 0:
+                protocol = "ospf"
+            elif len(self._contents["bgp"]) > 0:
+                protocol = "bgp"
+
         if protocol == "ospf":
             self._contents["ospf"].insert(
                 2, _Line(f" network {network_addr} 0.0.0.255 area 0\n")
@@ -255,6 +261,12 @@ class RouterConfigFile:
             protocol = "bgp"
         else:
             assert False, f"{protocol} is not applicable"
+
+        if len(self._contents[protocol]) == 0:
+            if len(self._contents["ospf"]) > 0:
+                protocol = "ospf"
+            elif len(self._contents["bgp"]) > 0:
+                protocol = "bgp"
 
         if protocol == "ospf":
             interface = next_hop.interface
