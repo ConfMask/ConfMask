@@ -9,7 +9,14 @@ import matplotlib.pyplot as plt
 import rich
 
 import shared
-from config import ANONYM_NAME, RESULTS_DIR, NETWORKS_DIR, STATS_FILE, ALGORITHMS
+from config import (
+    ANONYM_NAME,
+    RESULTS_DIR,
+    NETWORKS_DIR,
+    STATS_FILE,
+    ALGORITHMS,
+    ALGORITHM_LABELS,
+)
 
 
 @click.command()
@@ -65,7 +72,7 @@ def main(network, kr, kh, seed):
     # Plot the graph
     if len(all_results) > 0:
         save_name = ANONYM_NAME.format(algorithm="all", kr=kr, kh=kh, seed=seed)
-        alg_labels = [algorithm.capitalize() for algorithm in ALGORITHMS]
+        alg_labels = [ALGORITHM_LABELS[algorithm] for algorithm in ALGORITHMS]
         _, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
         ax1.bar(alg_labels, [all_results[alg][0] for alg in ALGORITHMS])
         ax2.bar(alg_labels, [all_results[alg][1] for alg in ALGORITHMS])

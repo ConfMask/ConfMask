@@ -401,7 +401,7 @@ class ConfMask(_Algorithm):
                     row.Protocol,
                 )
 
-        return f"[green]Done[/green] in {n_iteration} iterations"
+        return f"[bold green]Done[/bold green] in {n_iteration} iterations"
 
 
 class Strawman1(_Algorithm):
@@ -421,7 +421,7 @@ class Strawman1(_Algorithm):
                     self._H_networks, fake_interface_name, remote_ip, self._protocol
                 )
 
-        return "[green]Done[/green]"
+        return "[bold green]Done[/bold green]"
 
 
 class Strawman2(_Algorithm):
@@ -578,7 +578,7 @@ class Strawman2(_Algorithm):
             for _, rcf in self._R_map.values():
                 rcf.emit(self._target_dir / ROUTERS_SUBDIR)
 
-        return f"[green]Done[/green] in {n_iteration} iterations"
+        return f"[bold green]Done[/bold green] in {n_iteration} iterations"
 
 
 @click.command()
