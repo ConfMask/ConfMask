@@ -28,8 +28,6 @@ NETWORKS_DIR = Path(__file__).parent.parent / "networks"
 ORIGIN_NAME = "origin"
 ANONYM_NAME = "{algorithm}-kr{kr}-kh{kh}-seed{seed}"
 CONFMASK_NAME = "confmask-kr{kr}-kh{kh}-seed{seed}"  # XXX: replace with ANONYM_NAME
-STRAWMAN1_NAME = "strawman1-kr{kr}-kh{kh}-seed{seed}"  # XXX: replace with ANONYM_NAME
-STRAWMAN2_NAME = "strawman2-kr{kr}-kh{kh}-seed{seed}"  # XXX: replace with ANONYM_NAME
 NETHIDE_NAME = "nethide"
 
 # Level 4: Different subdirectories for storing configurations
