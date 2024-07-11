@@ -177,21 +177,8 @@ class RouterConfigFile:
         network_addr = f"{addr_bytes[0]}.{addr_bytes[1]}.{addr_bytes[2]}.0"
 
         if protocol == "ospf":
-            group = None
-            for ospf_line in self._contents["ospf"]:
-                if "area" in ospf_line:
-                    group = ospf_line.strip().split()[-1]
-                    break
-            if group is None:
-                proc = self._contents["ospf"][0].strip().split()[-1]
-                for interface_lines in self._contents["interface"]:
-                    for interface_line in interface_lines:
-                        if f"ip ospf {proc}" in interface_line:
-                            group = interface_line.strip().split()[-1]
-                            break
-            assert group is not None
             self._contents["ospf"].insert(
-                2, _Line(f" network {network_addr} 0.0.0.255 area {group}\n")
+                2, _Line(f" network {network_addr} 0.0.0.255 area 0\n")
             )
 
         elif protocol == "bgp":
