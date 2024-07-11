@@ -146,7 +146,9 @@ def run_network(name, target, progress, task):
     nethide_prop = _compare_with_origin(nethide_traces)
 
     _phase(
-        f"[green]Done[/green] | Confmask: {confmask_prop:.2%} | NetHide: {nethide_prop:.2%}"
+        "[bold green]Done[/bold green]"
+        f" | ConfMask: {confmask_prop:.2%}"
+        f" | NetHide: {nethide_prop:.2%}"
     )
     progress.stop_task(task)
     return confmask_prop, nethide_prop

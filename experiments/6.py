@@ -14,7 +14,14 @@ from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedC
 from pybatfish.client.session import Session
 
 import shared
-from config import NETWORKS_DIR, RESULTS_DIR, ORIGIN_NAME, BF_HOST, ANONYM_NAME
+from config import (
+    NETWORKS_DIR,
+    RESULTS_DIR,
+    ORIGIN_NAME,
+    BF_HOST,
+    ANONYM_NAME,
+    ALGORITHM_LABELS,
+)
 
 bf = Session(host=BF_HOST)
 
@@ -38,9 +45,9 @@ def run_network(network, algorithm, target, progress, task):
         return Counter(d for _, d in nx_graph.degree()).most_common()[-1]
 
     _, cnt_origin = _get_least_anonymized(ORIGIN_NAME, "Original")
-    _, cnt_target = _get_least_anonymized(target, algorithm.capitalize())
+    _, cnt_target = _get_least_anonymized(target, ALGORITHM_LABELS[algorithm])
 
-    _phase(f"[green]Done[/green] | {cnt_origin} -> {cnt_target}")
+    _phase(f"[bold green]Done[/bold green] | {cnt_origin} -> {cnt_target}")
     progress.stop_task(task)
     return cnt_origin, cnt_target
 
@@ -98,7 +105,7 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
             x + width,
             [v for _, (_, v) in all_results],
             width,
-            label=algorithm.capitalize(),
+            label=ALGORITHM_LABELS[algorithm],
         )
         plt.ylabel("Min # of same-degree nodes")
         plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])

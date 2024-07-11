@@ -11,7 +11,14 @@ import numpy as np
 import rich
 
 import shared
-from config import RESULTS_DIR, STATS_FILE, NETWORKS_DIR, ALGORITHMS, ANONYM_NAME
+from config import (
+    RESULTS_DIR,
+    STATS_FILE,
+    NETWORKS_DIR,
+    ALGORITHMS,
+    ANONYM_NAME,
+    ALGORITHM_LABELS,
+)
 
 
 @click.command()
@@ -53,7 +60,7 @@ def main(networks, kr, kh, seed):
                 x + i * width,
                 [all_results[(algorithm, network)] for network in networks],
                 width,
-                label=algorithm.capitalize(),
+                label=ALGORITHM_LABELS[algorithm],
             )
         plt.ylabel("Running time (s)")
         plt.yscale("log")

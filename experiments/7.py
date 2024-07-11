@@ -14,7 +14,14 @@ from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedC
 from pybatfish.client.session import Session
 
 import shared
-from config import NETWORKS_DIR, ANONYM_NAME, RESULTS_DIR, ORIGIN_NAME, BF_HOST
+from config import (
+    NETWORKS_DIR,
+    ANONYM_NAME,
+    RESULTS_DIR,
+    ORIGIN_NAME,
+    BF_HOST,
+    ALGORITHM_LABELS,
+)
 
 bf = Session(host=BF_HOST)
 
@@ -38,9 +45,9 @@ def run_network(network, algorithm, target, progress, task):
         return nx.average_clustering(nx_graph)
 
     coef_origin = _get_least_anonymized(ORIGIN_NAME, "Original")
-    coef_target = _get_least_anonymized(target, algorithm.capitalize())
+    coef_target = _get_least_anonymized(target, ALGORITHM_LABELS[algorithm])
 
-    _phase(f"[green]Done[/green] | {coef_origin:.3f} -> {coef_target:.3f}")
+    _phase(f"[bold green]Done[/bold green] | {coef_origin:.3f} -> {coef_target:.3f}")
     progress.stop_task(task)
     return coef_origin, coef_target
 
@@ -98,7 +105,7 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
             x + width,
             [v for _, (_, v) in all_results],
             width,
-            label=algorithm.capitalize(),
+            label=ALGORITHM_LABELS[algorithm],
         )
         plt.ylabel("Clustering coefficient")
         plt.ylim(0, 1)

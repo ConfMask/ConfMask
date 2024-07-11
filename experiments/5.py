@@ -88,7 +88,7 @@ def run_network(network, target, progress, task):
         progress.update(task, advance=1)
 
     result = sum(all_num_paths) / len(all_num_paths)
-    _phase(f"[green]Done[/green] | {result=:.3f}")
+    _phase(f"[bold green]Done[/bold green] | {result=:.3f}")
     progress.stop_task(task)
     return result
 

@@ -2,7 +2,7 @@ import shlex
 
 import click
 
-from config import PROTOCOL_MAPPING, ALGORITHMS
+from config import ALGORITHMS, AVAIL_NETWORKS
 
 
 def cli_network(multiple=False):
@@ -11,7 +11,7 @@ def cli_network(multiple=False):
             "-n",
             "--networks",
             required=True,
-            type=click.Choice(sorted(PROTOCOL_MAPPING)),
+            type=click.Choice(sorted(AVAIL_NETWORKS)),
             multiple=True,
             help="Networks to run.",
         )
@@ -20,7 +20,7 @@ def cli_network(multiple=False):
         "-n",
         "--network",
         required=True,
-        type=click.Choice(sorted(PROTOCOL_MAPPING)),
+        type=click.Choice(sorted(AVAIL_NETWORKS)),
         help="Network to run.",
     )
 
