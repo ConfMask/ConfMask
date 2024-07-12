@@ -33,7 +33,6 @@ NETWORKS_DIR = Path(__file__).parent.parent / "networks"
 # Level 3: Different versions of the same network
 ORIGIN_NAME = "origin"
 ANONYM_NAME = "{algorithm}-kr{kr}-kh{kh}-seed{seed}"
-CONFMASK_NAME = "confmask-kr{kr}-kh{kh}-seed{seed}"  # XXX: replace with ANONYM_NAME
 NETHIDE_NAME = "nethide"
 
 # Level 4: Different subdirectories for storing configurations
