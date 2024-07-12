@@ -93,7 +93,7 @@ class Network:
         tot_utility = 0
         for i in range(1, len(route)):
             prefix_route = self.forwarding[route[0]][route[i]]
-            common = set(prefix_route).intersection(set(route[: (i + 1)]))
+            common = set(prefix_route) & set(route[: (i + 1)])
             tot_utility += (len(common) - 1) / 2 * (1 / i + 1 / (len(route) - 1))
         return tot_utility / (len(route) - 1)
 
