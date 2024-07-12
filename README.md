@@ -208,12 +208,12 @@ that it requires.
 [^2]: The reason for ConfMask not reaching the theoretical 100% might be some Batfish
 traceroute issue. There are several ways to validate that ConfMask reaches 100% in
 correspondence to the theoretical proof provided in the paper:
-- In the `_diff_routes` function in [gen.py](./gen.py), print out if any `next_hop` in
-  `h_rib_new` is not in `h_nh_old`. Validate that nothing is printed out in the last
-  iteration.
-- In the `_compare_with_origin` function in [8.py](./8.py), print out unmatched routes.
-  Then run `traceroute` manually between the source-destination pair in the original and
-  the anonymized networks, respectively. It should turn out that they actually match.
+  - In the `_diff_routes` function in [gen.py](./gen.py), print out if any `next_hop` in
+    `h_rib_new` is not in `h_nh_old`. Validate that nothing is printed out in the last
+    iteration.
+  - In the `_compare_with_origin` function in [8.py](./8.py), print out unmatched
+    routes. Then run `traceroute` manually between the source-destination pair in the
+    original and anonymized networks, respectively. It should turn out that they match.
 
 [^3]: [Config2Spec](https://www.usenix.org/conference/nsdi20/presentation/birkner) is
 [open-source](https://github.com/nsg-ethz/config2spec). We use a slightly modified
