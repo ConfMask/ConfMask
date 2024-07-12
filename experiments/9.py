@@ -35,17 +35,25 @@ from config import (
 
 bf = Session(host=BF_HOST)
 
-_synthesizers = {}  # Maps to router synthesizer instances
-_pending_ifs = defaultdict(list)  # Maps to list of (name, host, prefix)
+_synthesizers = None
+_pending_ifs = None
+_prefix_generator = None
 
-# NetHide forwarding graph only contains node names, so we need to attach interface or
-# prefix information to it:
-# - point-to-point 2^(30-16) = 16384 subnets
-# - advertise 2^(24-16) = 256 subnets
-_prefix_generator = {
-    "p2p": ipaddress.ip_network("192.168.0.0/16").subnets(new_prefix=30),
-    "advertise": ipaddress.ip_network("10.123.0.0/16").subnets(new_prefix=24),
-}
+
+def _reset_globals():
+    """Reset the global variables for the next network."""
+    global _synthesizers, _pending_ifs, _prefix_generator
+    _synthesizers = {}  # Maps to router synthesizer instances
+    _pending_ifs = defaultdict(list)  # Maps to list of (name, host, prefix)
+
+    # NetHide forwarding graph only contains node names, so we need to attach interface
+    # or prefix information to it:
+    # - point-to-point 2^(30-16) = 16384 subnets
+    # - advertise 2^(24-16) = 256 subnets
+    _prefix_generator = {
+        "p2p": ipaddress.ip_network("192.168.0.0/16").subnets(new_prefix=30),
+        "advertise": ipaddress.ip_network("10.123.0.0/16").subnets(new_prefix=24),
+    }
 
 
 class RouterSynthesizer:
@@ -214,6 +222,7 @@ def _extract_specs(target, mode):
             f"Standard error:\n{result.stderr}"
         )
     with generated_file.open("r", encoding="utf-8") as f:
+        f.readline()  # Skip the csv header
         specs = set(line.rstrip() for line in f)
     generated_file.unlink()
     return specs
@@ -226,34 +235,31 @@ def _verify_extracted_specs(target_dir, specs, _display):
 
     def _verify_spec(spec):
         """Verify a single specification and return the corrected version."""
-        items = spec.split(",")  # 0: type, 1: subnet, 3: source
+        items = spec.split(",")  # 0: type, 1: subnet, 2: specifics, 3: source
 
-        answer = bf.q.reachability(
+        result = bf.q.reachability(
             pathConstraints=PathConstraints(startLocation=items[3]),
             headers=HeaderConstraints(dstIps=items[1], srcIps="0.0.0.0/0"),
             actions="SUCCESS",
-        ).answer()
-        try:
-            result = answer.frame()
-        except AttributeError:
-            return spec, False
+        ).answer().frame()
 
-        if (
-            items[0]
-            in (
-                "PolicyType.Waypoint",
-                "PolicyType.LoadBalancingSimple",
-                "PolicyType.Reachability",
-                "PolicyType.Isolation",
-            )
-            and len(result.Traces) > 0
-        ):
-            policy_holds = any(
-                trace.disposition in ("ACCEPTED", "EXITS_NETWORK")
+        # Get the number of accepted traces
+        if len(result.Traces) > 0:
+            accepted_count = sum(
+                1
                 for trace in result.Traces[0]
+                if trace.disposition in ("ACCEPTED", "EXITS_NETWORK")
             )
         else:
-            policy_holds = False
+            accepted_count = 0
+
+        # Check if the policy holds
+        policy_holds = (
+            (items[0] == "PolicyType.Waypoint" and accepted_count > 0)
+            or (items[0] == "PolicyType.LoadBalancingSimple" and accepted_count == int(items[2]))
+            or (items[0] == "PolicyType.Reachability" and accepted_count > 0)
+            or (items[0] == "PolicyType.Isolation" and accepted_count == 0)
+        )
 
         if policy_holds:
             return spec.replace("HOLDSNOT", "HOLDS"), True
@@ -399,7 +405,7 @@ def run_network(network, algorithm, target, progress, task):
         "false_negative_fakedst_ratio": fneg_fakedst_count / len(origin_specs),
     }
 
-    # Cleanup
+    # Clean up temporary files and directories
     for directory in (origin_dir, target_dir):
         for file in ("acls.txt", "data.pkl", "interfaces.txt", "topology.txt"):
             (directory / file).unlink(missing_ok=True)
@@ -442,6 +448,7 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
                 for network in networks
             }
             for network in networks:
+                _reset_globals()
                 result = run_network(
                     network, algorithm, target, progress, tasks[network]
                 )
