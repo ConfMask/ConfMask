@@ -156,7 +156,6 @@ def run_network(network, algorithm, target, progress, task):
     target_fd_tree = _load_fd_tree(target, target_label)
     _phase(f"[{target_label}] Comparing with original network...")
     target_prop = _compare_with_origin(target_fd_tree)
-    target_prop = 0.0
 
     # Compare NetHide with the original network
     _phase("[NetHide] Loading data...")
@@ -188,7 +187,7 @@ def run_network(network, algorithm, target, progress, task):
 @shared.cli_seed()
 @shared.cli_plot_only()
 def main(networks, algorithm, kr, kh, seed, plot_only):
-    rich.get_console().rule(f"Figure 8 | {algorithm=} {kr=}, {kh=}, {seed=}")
+    rich.get_console().rule(f"Figure 8 | {algorithm=}, {kr=}, {kh=}, {seed=}")
     results = {}
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks) if not plot_only else []
