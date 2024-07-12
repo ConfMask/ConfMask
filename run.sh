@@ -21,7 +21,7 @@ python ./experiments/5.py -r 6 -h 2 -s 0 -n A -a strawman1
 python ./experiments/5.py -r 6 -h 2 -s 0 -n A -a strawman2
 python ./experiments/6.py -r 6 -h 2 -s 0 -n A -n B -n C -n D -n E -n F -n G -n H
 python ./experiments/7.py -r 6 -h 2 -s 0 -n A -n B -n C -n D -n E -n F -n G -n H
-# python ./experiments/8.py  # TODO
+python ./experiments/8.py -r 6 -h 2 -s 0 -n A -n D -n G
 python ./experiments/9.py -r 6 -h 4 -s 0 -n A -n B -n C -n D -n G
 python ./experiments/10.py -r 6 -h 2 -s 0 -n A
 python ./experiments/11.py -r 2 -r 6 -r 10 -h 2 -s 0 -n A -n D -n E -n G
