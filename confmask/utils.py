@@ -33,8 +33,8 @@ def analyze_topology(topology):
     E = defaultdict(list)
     for row in topology.itertuples(index=False):
         E[row.Interface.hostname].append(row.Remote_Interface.hostname)
-    H = set(h for h, neighbors in E.items() if len(neighbors) == 1 and "host" in h)
-    R = set(E) - H
+    H = [h for h, neighbors in E.items() if len(neighbors) == 1 and "host" in h]
+    R = [r for r, neighbors in E.items() if not (len(neighbors) == 1 and "host" in r)]
     E_R, E_H = {}, {}
     for node, neighbors in E.items():
         if node in H:

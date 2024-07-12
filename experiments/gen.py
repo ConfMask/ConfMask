@@ -51,7 +51,7 @@ def _get_host_rib(routes, H_networks, _display):
 
 def _diff_routes(r, host_rib, host_rib_, H_networks):
     """Find differences in routes."""
-    ospf_subset = set()
+    ospf_sublist = []
     old, new = (
         host_rib[host_rib["Node"] == r],
         host_rib_[host_rib_["Node"] == r],
@@ -71,10 +71,10 @@ def _diff_routes(r, host_rib, host_rib_, H_networks):
                 h_nh_new.add(row.Next_Hop_IP)
 
         for node, next_hop in h_rib_old:
-            if next_hop not in h_nh_new:
-                ospf_subset.add(node)
+            if next_hop not in h_nh_new and node not in ospf_sublist:
+                ospf_sublist.append(node)
 
-    return ospf_subset
+    return ospf_sublist
 
 
 class _Algorithm:
@@ -322,22 +322,24 @@ class ConfMask(_Algorithm):
             host_rib_, rib_map_ = _get_host_rib(G_, self._H_networks, self._display)
 
             # Compare with original routes
-            ospf_set = set()
+            ospf_list = []
             n_done, n_total = 0, len(self._R)
             self._display(description="Comparing routes...", details=f"(0/{n_total})")
-            for ospf_subset in Parallel(n_jobs=-1, return_as="generator_unordered")(
+            for ospf_sublist in Parallel(n_jobs=-1, return_as="generator")(
                 delayed(_diff_routes)(r, host_rib, host_rib_, self._H_networks)
                 for r in self._R
             ):
-                ospf_set |= ospf_subset
+                for node in ospf_sublist:
+                    if node not in ospf_list:
+                        ospf_list.append(node)
                 n_done += 1
                 self._display(details=f"({n_done}/{n_total})")
             self._display(details="")
 
             # TODO
-            if self._protocol == "ospf" and len(ospf_set) > 0:
+            if self._protocol == "ospf" and len(ospf_list) > 0:
                 self._display(description="Incrementing OSPF cost...")
-                for node in ospf_set:
+                for node in ospf_list:
                     self._R_map[node][1].incr_ospf_cost()
             else:
                 diff_flag, n_total = False, len(self._H_networks)
@@ -485,24 +487,26 @@ class Strawman2(_Algorithm):
             G_ = bf.q.routes().answer().frame()
 
             # Compare with original routes
-            ospf_set = set()
+            ospf_list = []
             n_done, n_total = 0, len(self._R)
             self._display(description="Comparing routes...", details=f"(0/{n_total})")
-            for ospf_subset in Parallel(n_jobs=-1, return_as="generator_unordered")(
+            for ospf_sublist in Parallel(n_jobs=-1, return_as="generator")(
                 delayed(_diff_routes)(r, self._G, G_, self._H_networks) for r in self._R
             ):
-                ospf_set |= ospf_subset
+                for node in ospf_sublist:
+                    if node not in ospf_list:
+                        ospf_list.append(node)
                 n_done += 1
                 self._display(details=f"({n_done}/{n_total})...")
             self._display(details="")
 
-            if len(ospf_set) == 0:
+            if len(ospf_list) == 0:
                 break
 
             # TODO
-            if self._protocol == "ospf" and len(ospf_set) > 0:
+            if self._protocol == "ospf" and len(ospf_list) > 0:
                 self._display(description="Incrementing OSPF cost...")
-                for node in ospf_set:
+                for node in ospf_list:
                     self._R_map[node][1].incr_ospf_cost()
             else:
                 diff_flag, n_total = False, len(self._H_networks)
