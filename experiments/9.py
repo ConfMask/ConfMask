@@ -11,7 +11,6 @@ from collections import defaultdict
 from itertools import count
 
 import click
-import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
@@ -511,11 +510,31 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
 
         bottom = np.zeros(len(x))
         for (key, label), alpha, hatch in zip(nethide_keys, alphas, hatches):
-            plt.bar(x, nethide_plot_data[key], width, bottom=bottom, label=label, edgecolor="tab:blue", alpha=alpha, hatch=hatch, color="none")
+            plt.bar(
+                x,
+                nethide_plot_data[key],
+                width,
+                bottom=bottom,
+                label=label,
+                edgecolor="tab:blue",
+                alpha=alpha,
+                hatch=hatch,
+                color="none",
+            )
             bottom += np.array(nethide_plot_data[key])
         bottom = np.zeros(len(x))
         for (key, label), alpha, hatch in zip(target_keys, alphas, hatches):
-            plt.bar(x + width, target_plot_data[key], width, bottom=bottom, label=label, edgecolor="tab:orange", alpha=alpha, hatch=hatch, color="none")
+            plt.bar(
+                x + width,
+                target_plot_data[key],
+                width,
+                bottom=bottom,
+                label=label,
+                edgecolor="tab:orange",
+                alpha=alpha,
+                hatch=hatch,
+                color="none",
+            )
             bottom += np.array(target_plot_data[key])
 
         plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])

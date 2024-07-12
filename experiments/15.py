@@ -8,7 +8,6 @@ from collections import defaultdict
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-import rich
 
 import shared
 from config import ANONYM_NAME, RESULTS_DIR, NETWORKS_DIR, STATS_FILE
@@ -65,8 +64,14 @@ def main(cases, algorithm, seed):
 
     if len(missing_anonymity) > 0 or len(missing_utility) > 0:
         shared.display_cmd_hints(
-            [("gen", missing_networks, algorithm, kr, kh, seed) for (kr, kh), missing_networks in missing_utility.items()]
-            + [("5", missing_networks, algorithm, kr, kh, seed) for (kr, kh), missing_networks in missing_anonymity.items()]
+            [
+                ("gen", missing_networks, algorithm, kr, kh, seed)
+                for (kr, kh), missing_networks in missing_utility.items()
+            ]
+            + [
+                ("5", missing_networks, algorithm, kr, kh, seed)
+                for (kr, kh), missing_networks in missing_anonymity.items()
+            ]
         )
         return
 

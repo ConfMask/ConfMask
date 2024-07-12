@@ -181,7 +181,7 @@ def display_progress(networks, run_network_func, clean_network_func=None, **kwar
 
 def display_cmd_hints(params):
     """Display the panel of missing command hints.
-    
+
     Parameters
     ----------
     params : list of (script, networks, algorithm, kr, kh, seed)

@@ -8,7 +8,6 @@ from collections import defaultdict
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-import rich
 
 import shared
 from config import ANONYM_NAME, RESULTS_DIR
@@ -44,7 +43,10 @@ def main(networks, algorithm, krs, kh, seed):
 
     if len(missing) > 0:
         shared.display_cmd_hints(
-            [("5", missing_networks, algorithm, kr, kh, seed) for (kr, kh), missing_networks in missing.items()]
+            [
+                ("5", missing_networks, algorithm, kr, kh, seed)
+                for (kr, kh), missing_networks in missing.items()
+            ]
         )
         return
 

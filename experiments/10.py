@@ -6,7 +6,6 @@ import json
 
 import click
 import matplotlib.pyplot as plt
-import rich
 
 import shared
 from config import (
@@ -61,8 +60,14 @@ def main(network, kr, kh, seed):
 
     if len(anonymity_missing) > 0 or len(utility_missing) > 0:
         shared.display_cmd_hints(
-            [("gen", [network], missing_algorithm, kr, kh, seed) for missing_algorithm in utility_missing]
-            + [("5", [network], missing_algorithm, kr, kh, seed) for missing_algorithm in anonymity_missing]
+            [
+                ("gen", [network], missing_algorithm, kr, kh, seed)
+                for missing_algorithm in utility_missing
+            ]
+            + [
+                ("5", [network], missing_algorithm, kr, kh, seed)
+                for missing_algorithm in anonymity_missing
+            ]
         )
         return
 
