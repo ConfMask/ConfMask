@@ -105,7 +105,15 @@ python ./experiments/7.py -r 6 -h 2 -s 0 -n A -n B -n C -n D -n E -n F -n G -n H
 > [!NOTE]
 > This experiment involves NetHide[^1], thus only a subset of networks is supported.
 > Also note that ConfMask should reach a theoretical 100% in this experiment but this
-> may not always be the case with this script[^2].
+> may not always be the case with this script, likely because of some Batfish traceroute
+> issues. There are several ways to manually validate the theoretical 100%:
+>
+> - In the `_diff_routes` function in [gen.py](./gen.py), print out if any `next_hop` in
+>   `h_rib_new` is not in `h_nh_old`. Validate that nothing is printed out in the last
+>   iteration.
+> - In the `_compare_with_origin` function in [8.py](./8.py), print out unmatched
+>   routes. Then run `traceroute` manually between the source-destination pair in the
+>   original and anonymized networks, respectively. It should turn out that they match.
 
 ```bash
 python ./experiments/8.py -r 6 -h 2 -s 0 -n A -n D -n G
@@ -114,7 +122,7 @@ python ./experiments/8.py -r 6 -h 2 -s 0 -n A -n D -n G
 ### Figure 9
 
 > [!NOTE]
-> This experiment involves NetHide[^1] and Config2Spec[^3], thus only a subset of
+> This experiment involves NetHide[^1] and Config2Spec[^2], thus only a subset of
 > networks is supported.
 
 ```bash
@@ -205,17 +213,7 @@ We directly store forwarding information in the `nethide/` directory of each net
 that supports NetHide evaluation to avoid the complicated setup of the Gurobi optimizer
 that it requires.
 
-[^2]: The reason for ConfMask not reaching the theoretical 100% might be some Batfish
-traceroute issue. There are several ways to validate that ConfMask reaches 100% in
-correspondence to the theoretical proof provided in the paper:
-  - In the `_diff_routes` function in [gen.py](./gen.py), print out if any `next_hop` in
-    `h_rib_new` is not in `h_nh_old`. Validate that nothing is printed out in the last
-    iteration.
-  - In the `_compare_with_origin` function in [8.py](./8.py), print out unmatched
-    routes. Then run `traceroute` manually between the source-destination pair in the
-    original and anonymized networks, respectively. It should turn out that they match.
-
-[^3]: [Config2Spec](https://www.usenix.org/conference/nsdi20/presentation/birkner) is
+[^2]: [Config2Spec](https://www.usenix.org/conference/nsdi20/presentation/birkner) is
 [open-source](https://github.com/nsg-ethz/config2spec). We use a slightly modified
 version to extract network specifications of ConfMask and NetHide for comparison. See
 [setup](#setup) for the Docker image of our version.
