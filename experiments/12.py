@@ -43,10 +43,9 @@ def main(networks, algorithm, kr, khs, seed):
                     all_results[(kr, kh, network)] = results[network]
 
     if len(missing) > 0:
-        rich.print("[red]Some data are missing; try running:")
-        for (kr, kh), missing_networks in missing.items():
-            cmd = shared.get_5_cmd(missing_networks, algorithm, kr, kh, seed)
-            rich.print(f"[red]>[/red] {cmd}")
+        shared.display_cmd_hints(
+            [("5", missing_networks, algorithm, kr, kh, seed) for (kr, kh), missing_networks in missing.items()]
+        )
         return
 
     # Plot the graph

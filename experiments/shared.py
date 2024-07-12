@@ -4,6 +4,7 @@ import shlex
 
 import click
 import rich
+from rich.panel import Panel
 from rich.progress import Progress, TimeElapsedColumn, TextColumn
 from rich.table import Column
 
@@ -178,48 +179,35 @@ def display_progress(networks, run_network_func, clean_network_func=None, **kwar
                 progress.console.print_exception()
 
 
-### Missing command hints ###
+def display_cmd_hints(params):
+    """Display the panel of missing command hints.
+    
+    Parameters
+    ----------
+    params : list of (script, networks, algorithm, kr, kh, seed)
+        List of command hints to display.
+    """
+    lines = ["[bold]Some data are missing; try running:[/bold]"]
 
+    for script, networks, algorithm, kr, kh, seed in params:
+        parts = [
+            "python",
+            f"./experiments/{script}.py",
+            "-r",
+            str(kr),
+            "-h",
+            str(kh),
+            "-s",
+            str(seed),
+        ]
 
-def get_gen_cmd(network, algorithm, kr, kh, seed):
-    parts = [
-        "python",
-        "./experiments/gen.py",
-        "-r",
-        str(kr),
-        "-h",
-        str(kh),
-        "-s",
-        str(seed),
-        "-n",
-        network,
-    ]
+        for network in networks:
+            parts.append("-n")
+            parts.append(network)
+        if algorithm != "confmask":
+            parts.append("-a")
+            parts.append(algorithm)
 
-    if algorithm != "confmask":
-        parts.append("-a")
-        parts.append(algorithm)
+        lines.append(f"  [bold]$[/bold] {shlex.join(parts)}")
 
-    return shlex.join(parts)
-
-
-def get_5_cmd(networks, algorithm, kr, kh, seed):
-    parts = [
-        "python",
-        "./experiments/5.py",
-        "-r",
-        str(kr),
-        "-h",
-        str(kh),
-        "-s",
-        str(seed),
-    ]
-
-    for network in networks:
-        parts.append("-n")
-        parts.append(network)
-
-    if algorithm != "confmask":
-        parts.append("-a")
-        parts.append(algorithm)
-
-    return shlex.join(parts)
+    rich.print(Panel("\n".join(lines), style="red"))

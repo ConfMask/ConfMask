@@ -43,11 +43,9 @@ def main(networks, kr, kh, seed):
                 all_results[(algorithm, network)] = stats["time_elapsed"]
 
     if len(missing) > 0:
-        rich.print("[red]Some data are missing; try running:")
-        for algorithm, missing_networks in missing.items():
-            for missing_network in missing_networks:
-                cmd = shared.get_gen_cmd(missing_network, algorithm, kr, kh, seed)
-                rich.print(f"[red]>[/red] {cmd}")
+        shared.display_cmd_hints(
+            [("gen", missing_networks, algorithm, kr, kh, seed) for algorithm, missing_networks in missing.items()]
+        )
         return
 
     # Plot the graph

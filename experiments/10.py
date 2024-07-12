@@ -60,13 +60,10 @@ def main(network, kr, kh, seed):
             all_results[algorithm] = (cur_anonymity, cur_utility)
 
     if len(anonymity_missing) > 0 or len(utility_missing) > 0:
-        rich.print("[red]Some data are missing; try running:")
-        for missing_algorithm in utility_missing:
-            cmd = shared.get_gen_cmd(network, missing_algorithm, kr, kh, seed)
-            rich.print(f"[red]>[/red] {cmd}")
-        for missing_algorithm in anonymity_missing:
-            cmd = shared.get_5_cmd([network], missing_algorithm, kr, kh, seed)
-            rich.print(f"[red]>[/red] {cmd}")
+        shared.display_cmd_hints(
+            [("gen", [network], missing_algorithm, kr, kh, seed) for missing_algorithm in utility_missing]
+            + [("5", [network], missing_algorithm, kr, kh, seed) for missing_algorithm in anonymity_missing]
+        )
         return
 
     # Plot the graph

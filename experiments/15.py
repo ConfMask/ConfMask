@@ -64,14 +64,10 @@ def main(cases, algorithm, seed):
             all_results[(kr, kh, network)] = (cur_anonymity, cur_utility)
 
     if len(missing_anonymity) > 0 or len(missing_utility) > 0:
-        rich.print("[red]Some data are missing; try running:")
-        for (kr, kh), missing_networks in missing_utility.items():
-            for missing_network in missing_networks:
-                cmd = shared.get_gen_cmd(missing_network, algorithm, kr, kh, seed)
-                rich.print(f"[red]>[/red] {cmd}")
-        for (kr, kh), missing_networks in missing_anonymity.items():
-            cmd = shared.get_5_cmd(missing_networks, algorithm, kr, kh, seed)
-            rich.print(f"[red]>[/red] {cmd}")
+        shared.display_cmd_hints(
+            [("gen", missing_networks, algorithm, kr, kh, seed) for (kr, kh), missing_networks in missing_utility.items()]
+            + [("5", missing_networks, algorithm, kr, kh, seed) for (kr, kh), missing_networks in missing_anonymity.items()]
+        )
         return
 
     # Plot the graph and save the statistics
