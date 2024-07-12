@@ -237,11 +237,15 @@ def _verify_extracted_specs(target_dir, specs, _display):
         """Verify a single specification and return the corrected version."""
         items = spec.split(",")  # 0: type, 1: subnet, 2: specifics, 3: source
 
-        result = bf.q.reachability(
-            pathConstraints=PathConstraints(startLocation=items[3]),
-            headers=HeaderConstraints(dstIps=items[1], srcIps="0.0.0.0/0"),
-            actions="SUCCESS",
-        ).answer().frame()
+        result = (
+            bf.q.reachability(
+                pathConstraints=PathConstraints(startLocation=items[3]),
+                headers=HeaderConstraints(dstIps=items[1], srcIps="0.0.0.0/0"),
+                actions="SUCCESS",
+            )
+            .answer()
+            .frame()
+        )
 
         # Get the number of accepted traces
         if len(result.Traces) > 0:
@@ -256,7 +260,10 @@ def _verify_extracted_specs(target_dir, specs, _display):
         # Check if the policy holds
         policy_holds = (
             (items[0] == "PolicyType.Waypoint" and accepted_count > 0)
-            or (items[0] == "PolicyType.LoadBalancingSimple" and accepted_count == int(items[2]))
+            or (
+                items[0] == "PolicyType.LoadBalancingSimple"
+                and accepted_count == int(items[2])
+            )
             or (items[0] == "PolicyType.Reachability" and accepted_count > 0)
             or (items[0] == "PolicyType.Isolation" and accepted_count == 0)
         )

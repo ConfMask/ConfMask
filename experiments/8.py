@@ -23,7 +23,6 @@ from config import (
     RESULTS_DIR,
     ORIGIN_NAME,
     NETHIDE_NAME,
-    STATS_FILE,
     NETHIDE_FORWARDING_FILE,
     BF_HOST,
     ALGORITHM_LABELS,
@@ -161,7 +160,9 @@ def run_network(network, algorithm, target, progress, task):
 
     # Compare NetHide with the original network
     _phase("[NetHide] Loading data...")
-    with (network_dir / NETHIDE_NAME / NETHIDE_FORWARDING_FILE).open("r", encoding="utf-8") as f:
+    with (network_dir / NETHIDE_NAME / NETHIDE_FORWARDING_FILE).open(
+        "r", encoding="utf-8"
+    ) as f:
         nethide_forwarding = json.load(f)
     nethide_fd_tree = defaultdict(dict)
     for src_gw, dst_gw_paths in nethide_forwarding.items():
@@ -199,11 +200,15 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
             TextColumn("{task.description}"),
         ) as progress:
             tasks = {
-                network: progress.add_task(f"[{network}] (queued)", start=False, total=None)
+                network: progress.add_task(
+                    f"[{network}] (queued)", start=False, total=None
+                )
                 for network in networks
             }
             for network in networks:
-                result = run_network(network, algorithm, target, progress, tasks[network])
+                result = run_network(
+                    network, algorithm, target, progress, tasks[network]
+                )
                 results[network] = result
 
     # Merge results with existing (if any)
@@ -224,7 +229,12 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
         x, width = np.arange(len(all_results)), 0.4
         plt.figure()
         plt.bar(x, [v for _, (_, v) in all_results], width, label="NetHide")
-        plt.bar(x + width, [v for _, (v, _) in all_results], width, label=ALGORITHM_LABELS[algorithm])
+        plt.bar(
+            x + width,
+            [v for _, (v, _) in all_results],
+            width,
+            label=ALGORITHM_LABELS[algorithm],
+        )
         plt.ylabel("% Exactly kept paths")
         plt.ylim(0, 1)
         plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])
