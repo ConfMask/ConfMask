@@ -105,6 +105,15 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks) if not plot_only else []
 
+    missing_networks = [
+        network for network in networks if not (NETWORKS_DIR / network / target).exists()
+    ]
+    if len(missing_networks) > 0:
+        shared.display_cmd_hints(
+            [("gen", missing_networks, algorithm, kr, kh, seed)]
+        )
+        return
+
     def _run_network_func(network, *, progress, task):
         results[network] = run_network(network, target, progress, task)
 
