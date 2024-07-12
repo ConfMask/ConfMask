@@ -21,8 +21,8 @@ from config import ANONYM_NAME, RESULTS_DIR
 @shared.cli_kh()
 @shared.cli_seed()
 def main(networks, algorithm, krs, kh, seed):
-    rich.get_console().rule(
-        f"Figure 11 | {algorithm=}, kr={','.join(map(str, krs))}, {kh=}, {seed=}"
+    shared.display_title(
+        11, algorithm=algorithm, kr=",".join(map(str, krs)), kh=kh, seed=seed
     )
     all_results = {}  # (kr, kh, network) -> route anonymity
     missing = defaultdict(list)  # (kr, kh) -> list of missing networks

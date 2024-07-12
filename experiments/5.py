@@ -8,9 +8,7 @@ from itertools import permutations
 
 import click
 import matplotlib.pyplot as plt
-import rich
 from joblib import Parallel, delayed
-from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
 
@@ -22,17 +20,16 @@ bf = Session(host=BF_HOST)
 
 def run_network(network, target, progress, task):
     """Execute the experiment for a single network."""
-    progress.start_task(task)
 
-    def _phase(description):
-        progress.update(task, description=f"[{network}] {description}")
+    def _display(**kwargs):
+        progress.update(task, **kwargs)
 
-    _phase("Uploading configurations...")
+    _display(description="Uploading configurations...")
     bf.set_network(network)
     bf.init_snapshot(str(NETWORKS_DIR / network / target), name=target, overwrite=True)
-    _phase("Querying topology...")
+    _display(description="Querying topology...")
     topology = bf.q.layer3Edges().answer().frame()
-    _phase("Processing...")
+    _display(description="Processing...")
 
     # Extract information from the network topology
     gw_nodes = defaultdict(list)  # Destination gateway -> source hosts
@@ -73,23 +70,25 @@ def run_network(network, target, progress, task):
                     .answer()
                     .frame()
                 )
-                _phase(f"{host_ips[src_host]} -> {host_ips[dst_host]}")
+                _display(description=f"{host_ips[src_host]} -> {host_ips[dst_host]}...")
                 path = trace_route.Traces[0][0]
                 paths_mem.add("->".join(hop.node for hop in path.hops[:-1]))
 
         return len(paths_mem)
 
     gw_pairs, all_num_paths = list(permutations(gw_nodes, 2)), []
-    progress.update(task, total=len(gw_pairs))
+    n_done, n_total = 0, len(gw_pairs)
+    _display(details=f"(0/{n_total})")
     for num in Parallel(n_jobs=-1, prefer="threads", return_as="generator_unordered")(
         delayed(_trace)(src_gw, dst_gw) for src_gw, dst_gw in gw_pairs
     ):
+        n_done += 1
         all_num_paths.append(num)
-        progress.update(task, advance=1)
+        _display(details=f"({n_done}/{n_total})")
+    _display(details="")
 
     result = sum(all_num_paths) / len(all_num_paths)
-    _phase(f"[bold green]Done[/bold green] | {result=:.3f}")
-    progress.stop_task(task)
+    _display(description=f"[bold green]Done[/bold green] | {result=:.3f}")
     return result
 
 
@@ -101,26 +100,15 @@ def run_network(network, target, progress, task):
 @shared.cli_seed()
 @shared.cli_plot_only()
 def main(networks, algorithm, kr, kh, seed, plot_only):
-    rich.get_console().rule(f"Figure 5 | {algorithm=}, {kr=}, {kh=}, {seed=}")
+    shared.display_title(5, algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     results = {}
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks) if not plot_only else []
 
-    if len(networks) > 0:
-        with Progress(
-            TimeElapsedColumn(),
-            TaskProgressColumn(),
-            TextColumn("{task.description}"),
-        ) as progress:
-            tasks = {
-                network: progress.add_task(
-                    f"[{network}] (queued)", start=False, total=None
-                )
-                for network in networks
-            }
-            for network in networks:
-                result = run_network(network, target, progress, tasks[network])
-                results[network] = result
+    def _run_network_func(network, *, progress, task):
+        results[network] = run_network(network, target, progress, task)
+
+    shared.display_progress(networks, _run_network_func)
 
     # Merge results with existing (if any)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)

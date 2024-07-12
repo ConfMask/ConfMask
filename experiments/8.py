@@ -10,9 +10,7 @@ import click
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
-import rich
 from joblib import Parallel, delayed
-from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
 
@@ -33,21 +31,20 @@ bf = Session(host=BF_HOST)
 
 def run_network(network, algorithm, target, progress, task):
     """Execute the experiment for a single network."""
-    progress.start_task(task)
     network_dir = NETWORKS_DIR / network
     target_label = ALGORITHM_LABELS[algorithm]
 
-    def _phase(description):
-        progress.update(task, description=f"[{network}] {description}")
+    def _display(**kwargs):
+        progress.update(task, **kwargs)
 
-    def _load_fd_tree(ver, prefix):
+    def _load_fd_tree(ver):
         """Obtain the forwarding behavior of a network."""
-        _phase(f"[{prefix}] Uploading configurations...")
+        _display(description="Uploading configurations...")
         bf.set_network(network)
         bf.init_snapshot(str(network_dir / ver), name=ver, overwrite=True)
-        _phase(f"[{prefix}] Quering topology...")
+        _display(description="Quering topology...")
         topology = bf.q.layer3Edges().answer().frame()
-        _phase(f"[{prefix}] Processing...")
+        _display(description="Processing...")
 
         # Extract information from the network topology
         gws = {}  # Source host -> destination gateway
@@ -100,7 +97,9 @@ def run_network(network, algorithm, target, progress, task):
                         .answer()
                         .frame()
                     )
-                    _phase(f"[{prefix}] {host_ips[src_host]} -> {host_ips[dst_host]}")
+                    _display(
+                        description=f"{host_ips[src_host]} -> {host_ips[dst_host]}"
+                    )
                     path = trace_route.Traces[0][0]
                     paths_mem.add("->".join(hop.node for hop in path.hops[:-1]))
 
@@ -115,24 +114,27 @@ def run_network(network, algorithm, target, progress, task):
                         .answer()
                         .frame()
                     )
-                    _phase(f"[{prefix}] {src_ip} -> {dst_ip}")
+                    _display(description=f"{src_ip} -> {dst_ip}")
                     path = trace_route.Traces[0][0]
                     paths_mem.add("->".join(hop.node for hop in path.hops))
 
             return src_gw, dst_gw, paths_mem
 
         gw_pairs, fd_tree = list(permutations(gw_nodes, 2)), defaultdict(dict)
-        progress.update(task, total=len(gw_pairs), completed=0)
-        progress._tasks[task].finished_time = None  # Hack to continue elapsed time
+        n_done, n_total = 0, len(gw_pairs)
+        _display(details=f"(0/{n_total})")
         for src_gw, dst_gw, paths_mem in Parallel(
             n_jobs=-1, prefer="threads", return_as="generator_unordered"
         )(delayed(_trace)(src_gw, dst_gw) for src_gw, dst_gw in gw_pairs):
+            n_done += 1
             fd_tree[src_gw][dst_gw] = paths_mem
-            progress.update(task, advance=1)
+            _display(details=f"({n_done}/{n_total})")
+        _display(details="")
 
         return fd_tree
 
-    origin_fd_tree = _load_fd_tree(ORIGIN_NAME, "Original")
+    _display(network=f"[{network}/Original]")
+    origin_fd_tree = _load_fd_tree(ORIGIN_NAME)
 
     def _compare_with_origin(fd_tree):
         """Get the proportion of exactly kept paths compared with original network."""
@@ -151,12 +153,13 @@ def run_network(network, algorithm, target, progress, task):
         return n_same / n_total
 
     # Compare ConfMask with the original network
-    target_fd_tree = _load_fd_tree(target, target_label)
-    _phase(f"[{target_label}] Comparing with original network...")
+    _display(network=f"[{network}/{target_label}]")
+    target_fd_tree = _load_fd_tree(target)
+    _display(description="Comparing with original network...")
     target_prop = _compare_with_origin(target_fd_tree)
 
     # Compare NetHide with the original network
-    _phase("[NetHide] Loading data...")
+    _display(network=f"[{network}/NetHide]", description="Loading data...")
     with (network_dir / NETHIDE_NAME / NETHIDE_FORWARDING_FILE).open(
         "r", encoding="utf-8"
     ) as f:
@@ -165,15 +168,17 @@ def run_network(network, algorithm, target, progress, task):
     for src_gw, dst_gw_paths in nethide_forwarding.items():
         for dst_gw, path in dst_gw_paths.items():
             nethide_fd_tree[src_gw][dst_gw] = {"->".join(path)}
-    _phase("[NetHide] Comparing with original network...")
+    _display(description="Comparing with original network...")
     nethide_prop = _compare_with_origin(nethide_fd_tree)
 
-    _phase(
-        "[bold green]Done[/bold green]"
-        f" | {target_label}: {target_prop:.2%}"
-        f" | NetHide: {nethide_prop:.2%}"
+    _display(
+        network=f"[{network}]",
+        description=(
+            "[bold green]Done[/bold green]"
+            f" | {target_label}: {target_prop:.2%}"
+            f" | NetHide: {nethide_prop:.2%}"
+        ),
     )
-    progress.stop_task(task)
     return target_prop, nethide_prop
 
 
@@ -185,28 +190,15 @@ def run_network(network, algorithm, target, progress, task):
 @shared.cli_seed()
 @shared.cli_plot_only()
 def main(networks, algorithm, kr, kh, seed, plot_only):
-    rich.get_console().rule(f"Figure 8 | {algorithm=}, {kr=}, {kh=}, {seed=}")
+    shared.display_title(8, algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     results = {}
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks) if not plot_only else []
 
-    if len(networks) > 0:
-        with Progress(
-            TimeElapsedColumn(),
-            TaskProgressColumn(),
-            TextColumn("{task.description}"),
-        ) as progress:
-            tasks = {
-                network: progress.add_task(
-                    f"[{network}] (queued)", start=False, total=None
-                )
-                for network in networks
-            }
-            for network in networks:
-                result = run_network(
-                    network, algorithm, target, progress, tasks[network]
-                )
-                results[network] = result
+    def _run_network_func(network, *, progress, task):
+        results[network] = run_network(network, algorithm, target, progress, task)
+
+    shared.display_progress(networks, _run_network_func)
 
     # Merge results with existing (if any)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)

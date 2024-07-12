@@ -27,7 +27,7 @@ from config import (
 @shared.cli_kh()
 @shared.cli_seed()
 def main(networks, kr, kh, seed):
-    rich.get_console().rule(f"Figure 16 | {kr=}, {kh=}, {seed=}")
+    shared.display_title(16, kr=kr, kh=kh, seed=seed)
     all_results = {}  # (algorithm, network) -> time
     missing = defaultdict(list)  # algorithm -> list of missing networks
 

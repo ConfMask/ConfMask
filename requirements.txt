@@ -6,5 +6,5 @@ matplotlib
 networkx==3.3
 numpy==2.0.0
 pybatfish==2023.12.16.1270
-rich==13.7.1
+rich
 setuptools

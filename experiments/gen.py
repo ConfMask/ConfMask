@@ -1,3 +1,5 @@
+"""Generate anonymized configurations for the networks."""
+
 import ipaddress
 import json
 import shutil
@@ -8,13 +10,11 @@ from itertools import permutations
 import click
 import numpy as np
 import pandas as pd
-import rich
 from confmask.ip import generate_unicast_ip, clear_used_ips
 from confmask.parser import HostConfigFile, RouterConfigFile, clear_device_ids
 from confmask.topology import k_degree_anonymization
 from confmask.utils import analyze_topology
 from joblib import Parallel, delayed
-from rich.progress import Progress, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
 from pybatfish.datamodel.primitives import Interface
@@ -34,16 +34,18 @@ from config import (
 bf = Session(host=BF_HOST)
 
 
-def _get_host_rib(routes, H_networks, _phase):
+def _get_host_rib(routes, H_networks, _display):
     """Get the RIB of the hosts."""
     rows, route_map, n_total = [], defaultdict(list), len(routes)
+    _display(description="Processing routes...", details=f"(0/{n_total})")
     for i, row in enumerate(routes.itertuples()):
         dst_network = ipaddress.ip_network(row.Network)
         for network in H_networks:
             if dst_network.supernet_of(network):
                 rows.append(row)
                 route_map[network].append(row)
-        _phase(f"Processing routes ({i + 1}/{n_total})...")
+        _display(details=f"({i + 1}/{n_total})")
+    _display(details="")
     return pd.DataFrame(rows).drop_duplicates(), route_map
 
 
@@ -87,8 +89,8 @@ class _Algorithm:
         self.progress = progress
         self.task = task
 
-    def _phase(self, description):
-        self.progress.update(self.task, description=f"[{self.network}] {description}")
+    def _display(self, **kwargs):
+        self.progress.update(self.task, **kwargs)
 
     @property
     def target_name(self):
@@ -103,8 +105,6 @@ class _Algorithm:
         skipped : bool
             Whether the task is skipped.
         """
-        self.progress.start_task(self.task)
-
         network_dir = NETWORKS_DIR / self.network
         protocol = PROTOCOL_MAPPING[self.network]
         rng = np.random.default_rng(self.seed)
@@ -113,10 +113,9 @@ class _Algorithm:
         # Clean up and prepare the target directory
         target_dir = network_dir / self.target_name
         if target_dir.exists() and not self.force_overwrite:
-            self._phase("[yellow]Skipped")
-            self.progress.stop_task(self.task)
+            self._display(description="[yellow]Skipped")
             return True  # Skip the task
-        self._phase("Cleaning up target directory...")
+        self._display(description="Cleaning up target directory...")
         router_config_dir = target_dir / ROUTERS_SUBDIR
         host_config_dir = target_dir / HOSTS_SUBDIR
         if target_dir.exists():
@@ -126,20 +125,20 @@ class _Algorithm:
         host_config_dir.mkdir()
 
         # Analyze the original network using Batfish
-        self._phase("Uploading configurations...")
+        self._display(description="Uploading configurations...")
         bf.set_network(f"{self.network}-{ORIGIN_NAME}")
         bf.init_snapshot(
             str(network_dir / ORIGIN_NAME),
             name=f"{self.network}-{ORIGIN_NAME}",
             overwrite=True,
         )
-        self._phase("Querying topology...")
+        self._display(description="Querying topology...")
         T = bf.q.layer3Edges().answer().frame()
-        self._phase("Querying routes...")
+        self._display(description="Querying routes...")
         G = bf.q.routes().answer().frame()
-        self._phase("Querying interface properties...")
+        self._display(description="Querying interface properties...")
         LB = bf.q.interfaceProperties().answer().frame()
-        self._phase("Processing...")
+        self._display(description="Processing...")
 
         # Analyze topology
         R, _, _, E_H, _, nx_graph = analyze_topology(T)
@@ -160,11 +159,11 @@ class _Algorithm:
 
         # Anonymize network topology; NOTE: Prefer `k_degree_anonymization` for smaller
         # graphs and `fast_k_degree_anonymization` for larger graphs
-        self._phase("Anonymizing network topology...")
+        self._display(description="Anonymizing network topology...")
         _, new_edges = k_degree_anonymization(nx_graph, self.kr, rng)
 
         # For OSPF networks, compute the costs
-        self._phase("Computing OSPF costs...")
+        self._display(description="Computing OSPF costs...")
         metric_map = None
         if protocol == "ospf":
             metric_map = {}
@@ -188,7 +187,7 @@ class _Algorithm:
                 metric_map[(u, v)] = max(min_cost_u, min_cost_v)
 
         # Generate fake interfaces on both ends of each additional edge
-        self._phase("Generating fake interfaces...")
+        self._display(description="Generating fake interfaces...")
         fake_interfaces = defaultdict(list)  # Maps node -> (interface name, remote IP)
         for u, v in new_edges:
             u_ip_bytes = generate_unicast_ip(rng)
@@ -215,7 +214,7 @@ class _Algorithm:
                 v_rcf.add_peer(u_ip, u_rcf.bgp_as)
 
         # Generate fake hosts and connect them to the routers
-        self._phase("Generating fake hosts...")
+        self._display(description="Generating fake hosts...")
         for _, hcf in H_map.values():
             hcf.generate_fake_hosts(self.kh)
             rcf = R_map[E_H[hcf.name.lower()][0]][1]
@@ -230,14 +229,14 @@ class _Algorithm:
                 )
 
         # Write the modified router and host configurations
-        self._phase("Writing configurations...")
+        self._display(description="Writing configurations...")
         for _, rcf in R_map.values():
             rcf.emit(target_dir / ROUTERS_SUBDIR)
         for _, hcf in H_map.values():
             hcf.emit(target_dir / HOSTS_SUBDIR)
 
         # Store necessary information in the object
-        self._phase("Processing...")
+        self._display(description="Processing...")
         self._target_dir = target_dir
         self._protocol = protocol
         self._rng = rng
@@ -257,13 +256,12 @@ class _Algorithm:
 
     def output(self, message):
         """TODO"""
-        self._phase("Writing configurations...")
+        self._display(description="Writing configurations...")
         for _, rcf in self._R_map.values():
             rcf.emit(self._target_dir / ROUTERS_SUBDIR)
 
         end_time = time.perf_counter()
-        self._phase(f"{message} | Saving statistics...")
-        self.progress.stop_task(self.task)
+        self._display(description=f"{message} | Saving statistics...")
 
         # Save statistics
         config_lines_modified = defaultdict(int)
@@ -284,7 +282,7 @@ class _Algorithm:
                 f,
                 indent=2,
             )
-        self._phase(message)
+        self._display(network=f"[{self.network}]", description=message)
 
     def run(self):
         """Run the algorithm."""
@@ -306,53 +304,48 @@ class ConfMask(_Algorithm):
 
     def fix_routes(self):
         n_iteration, diff_flag = 0, True
-        host_rib, rib_map = _get_host_rib(self._G, self._H_networks, self._phase)
+        host_rib, rib_map = _get_host_rib(self._G, self._H_networks, self._display)
 
         while diff_flag:
             n_iteration += 1
+            self._display(network=f"[{self.network}/{n_iteration}]")
 
-            self._phase(f"[Iter/{n_iteration}] Uploading configurations...")
+            self._display(description="Uploading configurations...")
             bf.set_network(f"{self.network}-{self.target_name}")
             bf.init_snapshot(
                 str(self._target_dir),
                 name=f"{self.network}-{self.target_name}",
                 overwrite=True,
             )
-            self._phase(f"[Iter/{n_iteration}] Querying routes...")
+            self._display(description="Querying routes...")
             G_ = bf.q.routes().answer().frame()
-            host_rib_, rib_map_ = _get_host_rib(
-                G_,
-                self._H_networks,
-                lambda text: self._phase(f"[Iter/{n_iteration}] {text}"),
-            )
+            host_rib_, rib_map_ = _get_host_rib(G_, self._H_networks, self._display)
 
             # Compare with original routes
-            n_done, n_total = 0, len(self._R)
-            self._phase(
-                f"[Iter/{n_iteration}] Comparing routes ({n_done}/{n_total})..."
-            )
             ospf_set = set()
+            n_done, n_total = 0, len(self._R)
+            self._display(description="Comparing routes...", details=f"(0/{n_total})")
             for ospf_subset in Parallel(n_jobs=-1, return_as="generator_unordered")(
                 delayed(_diff_routes)(r, host_rib, host_rib_, self._H_networks)
                 for r in self._R
             ):
                 ospf_set |= ospf_subset
                 n_done += 1
-                self._phase(
-                    f"[Iter/{n_iteration}] Comparing routes ({n_done}/{n_total})..."
-                )
+                self._display(details=f"({n_done}/{n_total})")
+            self._display(details="")
 
             # TODO
             if self._protocol == "ospf" and len(ospf_set) > 0:
-                self._phase(f"[Iter/{n_iteration}] Incrementing OSPF cost...")
+                self._display(description="Incrementing OSPF cost...")
                 for node in ospf_set:
                     self._R_map[node][1].incr_ospf_cost()
             else:
                 diff_flag, n_total = False, len(self._H_networks)
+                self._display(
+                    description="Adjusting routes...", details=f"(0/{n_total})"
+                )
                 for i, h in enumerate(self._H_networks):
-                    self._phase(
-                        f"[Iter/{n_iteration}] Adjusting routes ({i + 1}/{n_total})..."
-                    )
+                    self._display(details=f"({i + 1}/{n_total})")
                     h_rib_df = pd.DataFrame(rib_map[h])
                     h_rib_df_ = pd.DataFrame(rib_map_[h])
                     for r in self._R:
@@ -370,16 +363,18 @@ class ConfMask(_Algorithm):
                                 self._R_map[r][1].add_distribute_list(
                                     h, row.Next_Hop, neighbor, row.Protocol
                                 )
+                self._display(details="")
 
             # Write the modified router configurations
-            self._phase(f"[Iter/{n_iteration}] Writing configurations...")
+            self._display(description="Writing configurations...")
             for _, rcf in self._R_map.values():
                 rcf.emit(self._target_dir / ROUTERS_SUBDIR)
 
         # Add noises
         n_total = len(self._R)
+        self._display(description="Adding noise...", details=f"(0/{n_total})")
         for i, r in enumerate(self._R):
-            self._phase(f"Adding noise ({i + 1}/{n_total})...")
+            self._display(details=f"({i + 1}/{n_total})")
             for row in G_[G_["Node"] == r].itertuples(index=False):
                 if row in host_rib_:
                     continue
@@ -400,6 +395,7 @@ class ConfMask(_Algorithm):
                     neighbor,
                     row.Protocol,
                 )
+            self._display(details="")
 
         return f"[bold green]Done[/bold green] in {n_iteration} iterations"
 
@@ -414,7 +410,7 @@ class Strawman1(_Algorithm):
         )
 
     def fix_routes(self):
-        self._phase("Adding filters...")
+        self._display(description="Adding filters...")
         for r in self._R:
             for fake_interface_name, remote_ip in self._fake_interfaces[r]:
                 self._R_map[r][1].strawman_add_filter(
@@ -459,63 +455,66 @@ class Strawman2(_Algorithm):
 
         # Trace routes of the original network
         gw_pairs = list(permutations(gw_inf_map, 2))
-        n_done, n_total = 0, len(gw_pairs)
         origin_traces = defaultdict(dict)
+        n_done, n_total = 0, len(gw_pairs)
+        self._display(
+            description="Tracing original routes...", details=f"(0/{n_total})"
+        )
         for src_gw, dst_gw, trace_info in Parallel(
             n_jobs=-1, prefer="threads", return_as="generator_unordered"
         )(delayed(_trace)(src_gw, dst_gw) for src_gw, dst_gw in gw_pairs):
             n_done += 1
-            self._phase(f"Tracing original routes ({n_done}/{n_total})...")
+            self._display(details=f"({n_done}/{n_total})")
             paths_mem = [[hop.node for hop in path.hops[:-1]] for path in trace_info]
             origin_traces[src_gw][dst_gw] = paths_mem
+        self._display(details="")
 
         n_iteration, diff_flag = 0, True
         while diff_flag:
             n_iteration += 1
+            self._display(network=f"[{self.network}/{n_iteration}]")
 
-            self._phase(f"[Iter/{n_iteration}] Uploading configurations...")
+            self._display(description="Uploading configurations...")
             bf.set_network(f"{self.network}-{self.target_name}")
             bf.init_snapshot(
                 str(self._target_dir),
                 name=f"{self.network}-{self.target_name}",
                 overwrite=True,
             )
-            self._phase(f"[Iter/{n_iteration}] Querying routes...")
+            self._display(description="Querying routes...")
             G_ = bf.q.routes().answer().frame()
 
             # Compare with original routes
-            n_done, n_total = 0, len(self._R)
-            self._phase(
-                f"[Iter/{n_iteration}] Comparing routes ({n_done}/{n_total})..."
-            )
             ospf_set = set()
+            n_done, n_total = 0, len(self._R)
+            self._display(description="Comparing routes...", details=f"(0/{n_total})")
             for ospf_subset in Parallel(n_jobs=-1, return_as="generator_unordered")(
                 delayed(_diff_routes)(r, self._G, G_, self._H_networks) for r in self._R
             ):
                 ospf_set |= ospf_subset
                 n_done += 1
-                self._phase(
-                    f"[Iter/{n_iteration}] Comparing routes ({n_done}/{n_total})..."
-                )
+                self._display(details=f"({n_done}/{n_total})...")
+            self._display(details="")
 
             if len(ospf_set) == 0:
                 break
 
             # TODO
             if self._protocol == "ospf" and len(ospf_set) > 0:
-                self._phase(f"[Iter/{n_iteration}] Incrementing OSPF cost...")
+                self._display(description="Incrementing OSPF cost...")
                 for node in ospf_set:
                     self._R_map[node][1].incr_ospf_cost()
             else:
                 diff_flag, n_total = False, len(self._H_networks)
                 n_done, n_total = 0, len(gw_pairs)
+                self._display(
+                    description="Tracing/adjusting routes...", details=f"(0/{n_total})"
+                )
                 for src_gw, dst_gw, trace_info in Parallel(
                     n_jobs=-1, prefer="threads", return_as="generator_unordered"
                 )(delayed(_trace)(src_gw, dst_gw) for src_gw, dst_gw in gw_pairs):
                     n_done += 1
-                    self._phase(
-                        f"[Iter/{n_iteration}] Tracing/Adjusting routes ({n_done}/{n_total})..."
-                    )
+                    self._display(details=f"({n_done}/{n_total})")
                     dst_ip = gw_inf_map[dst_gw][0]
                     for path_info in trace_info:
                         matching_path_found = False
@@ -573,8 +572,10 @@ class Strawman2(_Algorithm):
                                         )
                                         break
 
+                self._display(details="")
+
             # Write the modified router configurations
-            self._phase(f"[Iter/{n_iteration}] Writing configurations...")
+            self._display(description="Writing configurations...")
             for _, rcf in self._R_map.values():
                 rcf.emit(self._target_dir / ROUTERS_SUBDIR)
 
@@ -589,44 +590,31 @@ class Strawman2(_Algorithm):
 @shared.cli_seed()
 @shared.cli_force_overwrite()
 def main(networks, algorithm, kr, kh, seed, force_overwrite):
-    rich.get_console().rule(f"Generate | {algorithm=}, {kr=}, {kh=}, {seed=}")
+    shared.display_title("Generate", algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks)
 
-    with Progress(
-        TimeElapsedColumn(),
-        TextColumn("{task.description}"),
-    ) as progress:
-        tasks = {
-            network: progress.add_task(f"[{network}] (queued)", start=False, total=None)
-            for network in networks
-        }
-        for network in networks:
-            clear_device_ids()
-            clear_used_ips()
-            task = tasks[network]
+    def _run_network_func(network, *, progress, task):
+        clear_device_ids()
+        clear_used_ips()
 
-            try:
-                if algorithm == "strawman1":
-                    AlgClass = Strawman1
-                elif algorithm == "strawman2":
-                    AlgClass = Strawman2
-                elif algorithm == "confmask":
-                    AlgClass = ConfMask
-                else:
-                    raise NotImplementedError  # unreachable
-                alg = AlgClass(network, kr, kh, seed, force_overwrite, progress, task)
-                alg.run()
+        if algorithm == "strawman1":
+            AlgClass = Strawman1
+        elif algorithm == "strawman2":
+            AlgClass = Strawman2
+        elif algorithm == "confmask":
+            AlgClass = ConfMask
+        else:
+            raise NotImplementedError  # unreachable
+        alg = AlgClass(network, kr, kh, seed, force_overwrite, progress, task)
+        alg.run()
 
-            except Exception:
-                # Remove the target directory and print traceback on error
-                progress.update(task, description=f"[{network}] [red]Error")
-                progress.stop_task(task)
-                name = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
-                target_dir = NETWORKS_DIR / network / name
-                if target_dir.exists():
-                    shutil.rmtree(target_dir)
-                progress.console.print(f"[red]Error in network {network}")
-                progress.console.print_exception()
+    def _clean_network_func(network):
+        name = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
+        target_dir = NETWORKS_DIR / network / name
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
+
+    shared.display_progress(networks, _run_network_func, _clean_network_func)
 
 
 if __name__ == "__main__":

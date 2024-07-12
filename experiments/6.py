@@ -8,9 +8,7 @@ from collections import Counter
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-import rich
 from confmask.utils import analyze_topology
-from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session
 
 import shared
@@ -28,27 +26,30 @@ bf = Session(host=BF_HOST)
 
 def run_network(network, algorithm, target, progress, task):
     """Execute the experiment for a single network."""
-    progress.start_task(task)
 
-    def _phase(description):
-        progress.update(task, description=f"[{network}] {description}")
+    def _display(**kwargs):
+        progress.update(task, **kwargs)
 
-    def _get_least_anonymized(ver, prefix):
+    def _get_least_anonymized(ver):
         """Get the least anonymized node degree."""
-        _phase(f"[{prefix}] Uploading configurations...")
+        _display(description="Uploading configurations...")
         bf.set_network(network)
         bf.init_snapshot(str(NETWORKS_DIR / network / ver), name=ver, overwrite=True)
-        _phase(f"[{prefix}] Querying topology...")
+        _display(description="Querying topology...")
         topology = bf.q.layer3Edges().answer().frame()
-        _phase(f"[{prefix}] Processing...")
+        _display(description="Processing...")
         _, _, _, _, _, nx_graph = analyze_topology(topology)
         return Counter(d for _, d in nx_graph.degree()).most_common()[-1]
 
-    _, cnt_origin = _get_least_anonymized(ORIGIN_NAME, "Original")
-    _, cnt_target = _get_least_anonymized(target, ALGORITHM_LABELS[algorithm])
+    _display(network=f"[{network}/Original]")
+    _, cnt_origin = _get_least_anonymized(ORIGIN_NAME)
+    _display(network=f"[{network}/{ALGORITHM_LABELS[algorithm]}]")
+    _, cnt_target = _get_least_anonymized(target)
 
-    _phase(f"[bold green]Done[/bold green] | {cnt_origin} -> {cnt_target}")
-    progress.stop_task(task)
+    _display(
+        network=f"[{network}]",
+        description=f"[bold green]Done[/bold green] | {cnt_origin} -> {cnt_target}",
+    )
     return cnt_origin, cnt_target
 
 
@@ -60,28 +61,15 @@ def run_network(network, algorithm, target, progress, task):
 @shared.cli_seed()
 @shared.cli_plot_only()
 def main(networks, algorithm, kr, kh, seed, plot_only):
-    rich.get_console().rule(f"Figure 6 | {algorithm=}, {kr=}, {kh=}, {seed=}")
+    shared.display_title(6, algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     results = {}
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks) if not plot_only else []
 
-    if len(networks) > 0:
-        with Progress(
-            TimeElapsedColumn(),
-            TaskProgressColumn(),
-            TextColumn("{task.description}"),
-        ) as progress:
-            tasks = {
-                network: progress.add_task(
-                    f"[{network}] (queued)", start=False, total=None
-                )
-                for network in networks
-            }
-            for network in networks:
-                result = run_network(
-                    network, algorithm, target, progress, tasks[network]
-                )
-                results[network] = result
+    def _run_network_func(network, *, progress, task):
+        results[network] = run_network(network, algorithm, target, progress, task)
+
+    shared.display_progress(networks, _run_network_func)
 
     # Merge results with existing (if any)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)

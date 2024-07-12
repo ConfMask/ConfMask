@@ -13,9 +13,7 @@ from itertools import count
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-import rich
 from joblib import Parallel, delayed
-from rich.progress import Progress, TextColumn, TimeElapsedColumn
 from pybatfish.client.session import Session, HeaderConstraints
 from pybatfish.datamodel.flow import PathConstraints
 
@@ -315,30 +313,39 @@ def _extract_prefixes(target_dir):
     return host_prefixes, config_prefixes
 
 
+def _clean_temp_files(network, target):
+    """Clean up temporary files and directories."""
+    origin_dir = NETWORKS_DIR / network / ORIGIN_NAME
+    target_dir = NETWORKS_DIR / network / target
+
+    for directory in (origin_dir, target_dir):
+        for file in ("acls.txt", "data.pkl", "interfaces.txt", "topology.txt"):
+            (directory / file).unlink(missing_ok=True)
+        shutil.rmtree(directory / "fibs", ignore_errors=True)
+
+
 def run_network(network, algorithm, target, progress, task):
     """Execute the experiment for a single network."""
-    progress.start_task(task)
-    network_dir = NETWORKS_DIR / network
     target_label = ALGORITHM_LABELS[algorithm]
 
     def _display(**kwargs):
         progress.update(task, **kwargs)
 
     result = {}
-    origin_dir = network_dir / ORIGIN_NAME
-    nethide_dir = network_dir / NETHIDE_NAME
-    target_dir = network_dir / target
+    origin_dir = NETWORKS_DIR / network / ORIGIN_NAME
+    nethide_dir = NETWORKS_DIR / network / NETHIDE_NAME
+    target_dir = NETWORKS_DIR / network / target
 
     # Convert forwarding information to Config2Spec format
     _display(description="Loading forwarding info...")
-    nethide_dir = network_dir / NETHIDE_NAME
     _write_forwarding_info(nethide_dir / NETHIDE_FORWARDING_ORIGIN_FILE, origin_dir)
     _write_forwarding_info(nethide_dir / NETHIDE_FORWARDING_FILE, target_dir)
 
     # Evaluate NetHide
-    _display(description="[NetHide] Extracting original specs...")
+    _display(network=f"[{network}/NetHide]")
+    _display(description="Extracting original specs...")
     nh_origin_specs = _extract_specs(origin_dir, "nethide-specs")
-    _display(description="[NetHide] Extracting anonymized specs...")
+    _display(description="Extracting anonymized specs...")
     nh_target_specs = _extract_specs(target_dir, "nethide-specs")
 
     nh_kept_specs = nh_origin_specs & nh_target_specs
@@ -359,20 +366,21 @@ def run_network(network, algorithm, target, progress, task):
 
     # Evaluate ConfMask; Config2Spec has issues supporting BGP configurations, in which
     # case we use Batfish to verify the extracted specifications
-    _display(description=f"[{target_label}] Extracting original specs...")
+    _display(network=f"[{network}/{target_label}]")
+    _display(description="Extracting original specs...")
     origin_specs = _extract_specs(origin_dir, "full-policies")
     if PROTOCOL_MAPPING[network] == "bgp":
-        _display(description=f"[{target_label}] Verifying original specs...")
+        _display(description="Verifying original specs...")
         origin_specs, _ = _verify_extracted_specs(origin_dir, origin_specs, _display)
-    _display(description=f"[{target_label}] Extracting anonymized specs...")
+    _display(description="Extracting anonymized specs...")
     target_specs = _extract_specs(target_dir, "full-policies")
     if PROTOCOL_MAPPING[network] == "bgp":
-        _display(description=f"[{target_label}] Verifying anonymized specs...")
+        _display(description="Verifying anonymized specs...")
         target_specs, _ = _verify_extracted_specs(target_dir, target_specs, _display)
 
     # Extract the prefixes to distinguish whether a specification is for a host or for a
     # router interface
-    _display(description="Extracting prefixes...")
+    _display(network=f"[{network}]", description="Extracting prefixes...")
     origin_fakedst_prefixes, origin_config_prefixes = _extract_prefixes(origin_dir)
     target_fakedst_prefixes, target_config_prefixes = _extract_prefixes(target_dir)
 
@@ -418,6 +426,7 @@ def run_network(network, algorithm, target, progress, task):
             (directory / file).unlink(missing_ok=True)
         shutil.rmtree(directory / "fibs", ignore_errors=True)
 
+    _clean_temp_files(network, target)
     _display(
         description=(
             "[bold green]Done[/bold green]"
@@ -425,7 +434,6 @@ def run_network(network, algorithm, target, progress, task):
             f" | NetHide: {result['nethide']['kept_ratio']:.2%}"
         )
     )
-    progress.stop_task(task)
     return result
 
 
@@ -437,29 +445,19 @@ def run_network(network, algorithm, target, progress, task):
 @shared.cli_seed()
 @shared.cli_plot_only()
 def main(networks, algorithm, kr, kh, seed, plot_only):
-    rich.get_console().rule(f"Figure 9 | {algorithm=}, {kr=}, {kh=}, {seed=}")
+    shared.display_title(9, algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     results = {}
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks) if not plot_only else []
 
-    if len(networks) > 0:
-        with Progress(
-            TimeElapsedColumn(),
-            TextColumn("{task.description}"),
-            TextColumn("{task.fields[details]}", style="dim white"),
-        ) as progress:
-            tasks = {
-                network: progress.add_task(
-                    f"[{network}] (queued)", start=False, total=None, details=""
-                )
-                for network in networks
-            }
-            for network in networks:
-                _reset_globals()
-                result = run_network(
-                    network, algorithm, target, progress, tasks[network]
-                )
-                results[network] = result
+    def _run_network_func(network, *, progress, task):
+        _reset_globals()
+        results[network] = run_network(network, algorithm, target, progress, task)
+
+    def _clean_network_func(network):
+        _clean_temp_files(network, target)
+
+    shared.display_progress(networks, _run_network_func, _clean_network_func)
 
     # Merge results with existing (if any)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
