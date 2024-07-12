@@ -203,42 +203,44 @@ def run_network(network, algorithm, target, progress, task):
 @shared.cli_force_overwrite()
 def main(networks, algorithm, kr, kh, seed, plot_only, force_overwrite):
     shared.display_title("Figure 08", algorithm=algorithm, kr=kr, kh=kh, seed=seed)
-    results = {}
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks) if not plot_only else []
 
-    missing_networks = [
-        network
-        for network in networks
-        if not (NETWORKS_DIR / network / target).exists()
-    ]
-    if len(missing_networks) > 0:
-        shared.display_cmd_hints([("gen", missing_networks, algorithm, kr, kh, seed)])
-        return
-
-    skipped_networks = []
-    if not force_overwrite:
-        results_file = RESULTS_DIR / f"8-{target}.json"
-        if results_file.exists():
-            with results_file.open("r", encoding="utf-8") as f:
-                skipped_networks = list(json.load(f))
-
-    def _run_network_func(network, *, progress, task):
-        results[network] = run_network(network, algorithm, target, progress, task)
-
-    shared.display_progress(networks, skipped_networks, _run_network_func)
-
-    # Merge results with existing (if any)
+    # Load existing results
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     results_file = RESULTS_DIR / f"8-{target}.json"
     all_results = {}
     if results_file.exists():
         with results_file.open("r", encoding="utf-8") as f:
             all_results = json.load(f)
-    all_results.update(results)
+
     if not plot_only:
-        with results_file.open("w", encoding="utf-8") as f:
-            json.dump(all_results, f, indent=2)
+        missing_networks = [
+            network
+            for network in networks
+            if not (NETWORKS_DIR / network / target).exists()
+        ]
+        if len(missing_networks) > 0:
+            shared.display_cmd_hints(
+                [("gen", missing_networks, algorithm, kr, kh, seed)]
+            )
+            return
+
+        skipped_networks = []
+        if not force_overwrite:
+            results_file = RESULTS_DIR / f"8-{target}.json"
+            if results_file.exists():
+                with results_file.open("r", encoding="utf-8") as f:
+                    skipped_networks = list(json.load(f))
+
+        def _run_network_func(network, *, progress, task):
+            all_results[network] = run_network(
+                network, algorithm, target, progress, task
+            )
+            with results_file.open("w", encoding="utf-8") as f:
+                json.dump(all_results, f, indent=2)
+
+        shared.display_progress(networks, skipped_networks, _run_network_func)
 
     # Plot the graph
     if len(all_results) > 0:
