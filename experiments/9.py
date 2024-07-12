@@ -11,7 +11,9 @@ from collections import defaultdict
 from itertools import count
 
 import click
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import numpy as np
 from joblib import Parallel, delayed
 from pybatfish.client.session import Session, HeaderConstraints
@@ -448,15 +450,16 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
     shared.display_title("Figure 09", algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     results = {}
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
+    target_label = ALGORITHM_LABELS[algorithm]
     networks = sorted(networks) if not plot_only else []
 
     missing_networks = [
-        network for network in networks if not (NETWORKS_DIR / network / target).exists()
+        network
+        for network in networks
+        if not (NETWORKS_DIR / network / target).exists()
     ]
     if len(missing_networks) > 0:
-        shared.display_cmd_hints(
-            [("gen", missing_networks, algorithm, kr, kh, seed)]
-        )
+        shared.display_cmd_hints([("gen", missing_networks, algorithm, kr, kh, seed)])
         return
 
     def _run_network_func(network, *, progress, task):
@@ -475,93 +478,50 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
     if results_file.exists():
         with results_file.open("r", encoding="utf-8") as f:
             all_results = json.load(f)
-    all_results.pop("MajorClaims", None)
     all_results.update(results)
-
-    # Extract the data for the plot
-    cm_anonym, cm_kept, cm_fneg, cm_fpos, cm_base = [], [], [], [], []
-    nh_kept, nh_fpos, nh_fneg = [], [], []
-
-    for net in all_results:
-        cm_anonym.append(all_results[net][algorithm]["false_positive_fakedst_ratio"])
-        cm_kept.append(all_results[net][algorithm]["kept_ratio"])
-        cm_fneg.append(all_results[net][algorithm]["false_negative_ratio"])
-        cm_fpos.append(all_results[net][algorithm]["false_positive_ratio"])
-        cm_base.append(all_results[net][algorithm]["specs_origin"])
-
-        nh_kept.append(all_results[net]["nethide"]["kept_ratio"])
-        nh_fneg.append(all_results[net]["nethide"]["false_negative_ratio"])
-        nh_fpos.append(all_results[net]["nethide"]["false_positive_ratio"])
-
-    dump_results = all_results.copy()
-    dump_results.update(
-        {
-            "MajorClaims": {
-                "ConfMask-Kept": np.mean(cm_kept),
-                "ConfMask-Anonym": np.mean(cm_anonym),
-                "ConfMask-Fneg": np.mean(cm_fneg),
-                "NetHide-Kept": np.mean(nh_kept),
-                "NetHide-Fneg": np.mean(nh_fneg),
-                "NetHide-Fpos": np.mean(nh_fpos),
-                "ConfMask-Reduced-Missing-Specs": (
-                    1 - np.mean(cm_fneg) / np.mean(nh_fneg)
-                ),
-                "ConfMask-Introduced-Anonym-Specs": np.mean(cm_anonym)
-                / np.mean(nh_fpos),
-            }
-        }
-    )
-
     if not plot_only:
         with results_file.open("w", encoding="utf-8") as f:
-            json.dump(dump_results, f, indent=2)
+            json.dump(all_results, f, indent=2)
 
     # Plot the graph
     if len(all_results) > 0:
+        all_results = sorted(all_results.items())
+        alphas = (1.0, 0.4, 1.0, 0.4)
+        hatches = ("++++", "....", "xxxx", "****")
+        target_keys = (
+            ("kept_ratio", f"{target_label} kept specs"),
+            ("false_negative_ratio", f"{target_label} false negatives"),
+            ("false_positive_origin_ratio", f"{target_label} false positives"),
+            ("false_positive_fakedst_ratio", f"{target_label} anonymized"),
+        )
+        nethide_keys = (
+            ("kept_ratio", "NetHide kept specs"),
+            ("false_negative_ratio", "NetHide false negatives"),
+            ("false_positive_ratio", "NetHide false positives"),
+        )
+        target_plot_data, nethide_plot_data = defaultdict(list), defaultdict(list)
+        for _, data in sorted(all_results):
+            for key, _ in target_keys:
+                target_plot_data[key].append(data[algorithm][key])
+            for key, _ in nethide_keys:
+                nethide_plot_data[key].append(data["nethide"][key])
+
         x, width = np.arange(len(all_results)), 0.4
         plt.figure()
-        plt.bar(
-            x + width / 2,
-            cm_anonym,
-            width,
-            bottom=np.ones(len(x)),
-            label="ConfMask anonymized",
-        )
-        plt.bar(
-            x + width / 2,
-            cm_fpos,
-            width,
-            bottom=cm_base,
-            label="ConfMask false positives",
-        )
-        plt.bar(
-            x + width / 2,
-            cm_fneg,
-            width,
-            bottom=cm_kept,
-            label="ConfMask false negatives",
-        )
-        plt.bar(x + width / 2, cm_kept, width, label="ConfMask kept specs")
 
-        plt.bar(
-            x - width / 2,
-            nh_fpos,
-            width,
-            bottom=np.ones(len(x)),
-            label="NetHide false positives",
-        )
-        plt.bar(
-            x - width / 2,
-            nh_fneg,
-            width,
-            bottom=nh_kept,
-            label="NetHide false negatives",
-        )
-        plt.bar(x - width / 2, nh_kept, width, label="NetHide kept specs")
+        bottom = np.zeros(len(x))
+        for (key, label), alpha, hatch in zip(nethide_keys, alphas, hatches):
+            plt.bar(x, nethide_plot_data[key], width, bottom=bottom, label=label, edgecolor="tab:blue", alpha=alpha, hatch=hatch, color="none")
+            bottom += np.array(nethide_plot_data[key])
+        bottom = np.zeros(len(x))
+        for (key, label), alpha, hatch in zip(target_keys, alphas, hatches):
+            plt.bar(x + width, target_plot_data[key], width, bottom=bottom, label=label, edgecolor="tab:orange", alpha=alpha, hatch=hatch, color="none")
+            bottom += np.array(target_plot_data[key])
 
-        plt.ylabel("Specs Difference Ratio")
-        plt.ylim(0, 3)
-        plt.xticks(x, [f"Net{k}" for k in all_results])
+        plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])
+        plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1.0))
+        plt.ylim(0, 2.5)
+        plt.ylabel("% Difference in network specs")
         plt.legend()
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"9-{target}.png")
