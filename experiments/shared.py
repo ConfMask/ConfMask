@@ -182,11 +182,15 @@ def display_progress(
                 run_network_func(network, progress=progress, task=task, **kwargs)
                 progress.stop_task(task)
             except Exception:
-                progress.update(task, description="[red]Error")
+                progress.update(
+                    task,
+                    network=f"[{network}]",
+                    description="[bold red]Error",
+                    details="",
+                )
                 progress.stop_task(task)
                 if clean_network_func is not None:
                     clean_network_func(network, **kwargs)
-                progress.console.print(f"[red]Error in network {network}")
                 progress.console.print_exception()
 
 
