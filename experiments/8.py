@@ -237,7 +237,12 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
         all_results = sorted(all_results.items())
         x, width = np.arange(len(all_results)), 0.4
         plt.figure()
-        plt.bar(x, [v["nethide"]["kept_ratio"] for _, v in all_results], width, label="NetHide")
+        plt.bar(
+            x,
+            [v["nethide"]["kept_ratio"] for _, v in all_results],
+            width,
+            label="NetHide",
+        )
         plt.bar(
             x + width,
             [v[algorithm]["kept_ratio"] for _, v in all_results],
