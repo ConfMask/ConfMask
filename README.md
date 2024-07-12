@@ -1,7 +1,7 @@
 # ConfMask
 
 This repository contains the source code and evaluation scripts for the paper
-[*ConfMask:Enabling Privacy-Preserving Configuration Sharing via Anonymization*](./paper.pdf).
+[*ConfMask: Enabling Privacy-Preserving Configuration Sharing via Anonymization*](./paper.pdf).
 
 **ACM Reference format:**
 
@@ -208,7 +208,6 @@ that it requires.
 [^2]: The reason for ConfMask not reaching the theoretical 100% might be some Batfish
 traceroute issue. There are several ways to validate that ConfMask reaches 100% in
 correspondence to the theoretical proof provided in the paper:
-
 - In the `_diff_routes` function in [gen.py](./gen.py), print out if any `next_hop` in
   `h_rib_new` is not in `h_nh_old`. Validate that nothing is printed out in the last
   iteration.
