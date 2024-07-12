@@ -126,7 +126,7 @@ def display_title(id, **kwargs):
         names.
     """
     params = ", ".join(f"{key}={repr(value)}" for key, value in kwargs.items())
-    rich.get_console().rule(f"[bold]{id}[/bold] | {params}", characters="━")
+    rich.print(f"[green]━━━━━[/green] [bold]{id}[/bold] | {params} [green]━━━━━")
 
 
 def display_progress(networks, run_network_func, clean_network_func=None, **kwargs):
