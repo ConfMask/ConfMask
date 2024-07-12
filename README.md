@@ -182,11 +182,9 @@ python ./experiments/14.py -r 6 -h 2 -h 4 -s 0 -n A -n D -n E -n G
 > [!NOTE]
 > This experiment relies on the results of [Figure 5](#figure-5). It uses `-c/--cases`
 > to select multiple network and parameter combinations to plot, different from other
-> scripts.
-
-> [!NOTE]
-> Comparing across different networks and different sets of parameters as in the paper
-> may not imply strong correlation; try controlling variables instead.
+> scripts. However, note that comparing across different networks and different sets of
+> parameters as in the paper may not imply strong correlation; you may also try
+> controlling variables instead.
 
 ```bash
 python ./experiments/15.py -s 0 \
