@@ -8,19 +8,21 @@ from rich.panel import Panel
 from rich.progress import Progress, TimeElapsedColumn, TextColumn
 from rich.table import Column
 
-from config import ALGORITHMS, AVAIL_NETWORKS
+from config import ALGORITHMS, AVAIL_NETWORKS, AVAIL_NETHIDE_NETWORKS
 
 
 ### CLI options ###
 
 
-def cli_network(multiple=False):
+def cli_network(multiple=False, nethide=False):
+    choices = AVAIL_NETHIDE_NETWORKS if nethide else AVAIL_NETWORKS
+
     if multiple:
         return click.option(
             "-n",
             "--networks",
             required=True,
-            type=click.Choice(sorted(AVAIL_NETWORKS)),
+            type=click.Choice(sorted(choices)),
             multiple=True,
             help="Networks to run.",
         )
@@ -29,7 +31,7 @@ def cli_network(multiple=False):
         "-n",
         "--network",
         required=True,
-        type=click.Choice(sorted(AVAIL_NETWORKS)),
+        type=click.Choice(sorted(choices)),
         help="Network to run.",
     )
 

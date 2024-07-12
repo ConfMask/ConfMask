@@ -439,7 +439,7 @@ def run_network(network, algorithm, target, progress, task):
 
 
 @click.command()
-@shared.cli_network(multiple=True)
+@shared.cli_network(multiple=True, nethide=True)
 @shared.cli_algorithm()
 @shared.cli_kr()
 @shared.cli_kh()

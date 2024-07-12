@@ -1,7 +1,7 @@
 # ConfMask
 
 This repository contains the source code and evaluation scripts for the paper
-*ConfMask:Enabling Privacy-Preserving Configuration Sharing via Anonymization*.
+[*ConfMask:Enabling Privacy-Preserving Configuration Sharing via Anonymization*](./paper.pdf).
 
 **ACM Reference format:**
 
@@ -31,145 +31,157 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-Pull the necessary docker images and run Batfish:
+Pull and start Batfish service:
 
 ```bash
 docker pull batfish/allinone
-docker pull ghcr.io/confmask/confmask-config2spec:latest  # Used for Experiment 9 
 docker run --name batfish -v batfish-data:/data -p 8888:8888 -p 9997:9997 -p 9996:9996 batfish/allinone
 ```
 
+Pull [confmask-config2spec](https://github.com/orgs/confmask/packages/container/package/confmask-config2spec)
+which will be used in [Figure 9](#figure-9):
+
+```bash
+docker pull ghcr.io/confmask/confmask-config2spec:latest
+```
+
+> [!IMPORTANT]
+> We suggest running on machine or server with at least 32GB of memory, otherwise the
+> Batfish service may run out of memory for large networks (e.g. Network F).
+
 ## Evaluation
 
-In short, run `./run.sh` on Unix or `./run.ps1` on Windows to run the full evaluation
-suite. Read on if you want to look into details, or something broke halfway and you do
-not want to start over.
+Run [run.sh](./run.sh) on Unix or [run.ps1](./run.ps1) on Windows to run the full
+evaluation suite. If anything fails during the run, simply re-run the script and
+completed generation and evaluation tasks will be automatically skipped.
 
-> [!NOTE]
-> - Use the `--help` option on each script to see available options.
-> - The generation script does not overwrite existing data by default. Use the
->   `-f/--force` to force overwrite existing data instead.
-> - Each evaluation script supports evaluating only a subset of all relevant networks.
->   Use the `--help` option to see relevant network names and use the `-n/--networks`
->   option to specify the subset.
-> - Each evaluation script saves/updates the results in the corresponding JSON file, in
->   addition to producing the plots. Hence, the `--plot-only` option can be used to
->   generate the plots from the existing results without re-running the experiments.
-> - The layout of the generated plots may be different from the paper, but they convey
->   essentially the same information.
+> [!TIP]
+> Run in a terminal window of at least 75 characters wide to enable full display of the
+> execution progress.
+
+## Evaluation Details
+
+This section describes each script in more details.
+
+> [!TIP]
+> - Use the `--help` option on each script to see available options. An option can be
+>   specified multiple times if it is in plural form.
+> - Scripts with the `-f/--force-overwrite` option do not overwrite existing data by
+>   default. Set the flag to overwrite instead.
+> - Evaluation scripts with the `-p/--plot-only` option allows generating plots only
+>   from existing data, without running any additional experiments.
 
 ### Generate anonymized networks
 
-Run the ConfMask algorithm (required for all evaluations):
+The [gen.py](./experiments/gen.py) script is used for generating anonymized networks,
+with either the ConfMask algorithm or the strawman algorithms mentioned in the paper.
 
-```bash
-# See run.sh for minimum required ones to complete the evaluation suite
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A
-```
-
-Run the strawman algorithms (required for [Figure 10](#figure-10) and
-[Figure 16](#figure-16)):
-
-```bash
-# See run.sh for minimum required ones to complete the evaluation suite
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A -a strawman1
-python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A -a strawman2
-```
+- Use `-n/--networks` to select the networks to run. It can be used multiple times so
+  as to anonymize multiple networks with the same setup.
+- Use `-a/--algorithm` to select the algorithm to use.
+- Use `-r/--kr` and `-h/--kh` to specify the anonymization degrees.
+- Use `-s/--seed` to specify a particular random seed.
 
 ### Figure 5
 
-> [!NOTE]
-> The random noise generator has significant impact on the results of this experiment.
-> The results may thus vary with different random seeds, but the overall average should
-> be close to the results in the paper.
-
 ```bash
-python experiments/5.py --kr 6 --kh 2 --seed 0
+python ./experiments/5.py -r 6 -h 2 -s 0 -n A -n B -n C -n D -n E -n F -n G -n H
 ```
 
 ### Figure 6
 
 ```bash
-python experiments/6.py --kr 6 --kh 2 --seed 0
+python ./experiments/6.py -r 6 -h 2 -s 0 -n A -n B -n C -n D -n E -n F -n G -n H
 ```
 
 ### Figure 7
 
 ```bash
-python experiments/7.py --kr 6 --kh 2 --seed 0
+python ./experiments/7.py -r 6 -h 2 -s 0 -n A -n B -n C -n D -n E -n F -n G -n H
 ```
 
 ### Figure 8
 
 > [!NOTE]
-> This experiment involves NetHide, for which we directly provide intermediate results
-> produce by our re-implementation [here](./confmask/nethide.py). This experiment is
-> supported only for networks A, D, and G as in the paper.
+> This experiment involves NetHide[^1], thus only a subset of networks is supported.
+> Also note that ConfMask should reach a theoretical 100% in this experiment but this
+> may not always be the case with this script[^2].
 
 ```bash
-python experiments/8.py --kr 6 --kh 2 --seed 0
+python ./experiments/8.py -r 6 -h 2 -s 0 -n A -n D -n G
 ```
 
 ### Figure 9
 
 > [!NOTE]
-> This experiment involves Config2Spec, for which we use a modified version to
-> support extracting network specifications of both NetHide and ConfMask for comparison.
-> We provide a docker image with all necessary dependencies, so please make sure you have
-> pulled the image according to the [setup](#setup).
+> This experiment involves NetHide[^1] and Config2Spec[^3], thus only a subset of
+> networks is supported.
 
 ```bash
-python experiments/9.py --kr 6 --kh 2 --seed 0
+python ./experiments/9.py -r 6 -h 4 -s 0 -n A -n B -n C -n D -n G
 ```
 
 ### Figure 10
 
 > [!NOTE]
-> This experiment relies on the results of [Figure 5](#figure-5).
+> This experiment relies on the results of [Figure 5](#figure-5). It supports selecting
+> only one network at a time.
 
 ```bash
-python ./experiments/10.py --kr 6 --kh 2 --seed 0 -n A
+python ./experiments/10.py -r 6 -h 2 -s 0 -n A
 ```
 
 ### Figure 11
 
 > [!NOTE]
-> This experiment relies on the results of [Figure 5](#figure-5).
+> This experiment relies on the results of [Figure 5](#figure-5). It supports selecting
+> multiple `-r/--krs` values for comparison.
 
 ```bash
-python ./experiments/11.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
+python ./experiments/11.py -r 2 -r 6 -r 10 -h 2 -s 0 -n A -n D -n E -n G
 ```
 
 ### Figure 12
 
 > [!NOTE]
-> This experiment relies on the results of [Figure 5](#figure-5).
+> This experiment relies on the results of [Figure 5](#figure-5). It supports selecting
+> multiple `-h/--khs` values for comparison.
 
 ```bash
-python ./experiments/12.py --kr 6 --kh 2 --kh 4 --kh 6 --seed 0
+python ./experiments/12.py -r 6 -h 2 -h 4 -h 6 -s 0 -n A -n B -n C
 ```
 
 ### Figure 13
 
+> [!NOTE]
+> This experiment supports selecting multiple `-r/--krs` values for comparison.
+
 ```bash
-python ./experiments/13.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
+python ./experiments/13.py -r 2 -r 6 -r 10 -h 2 -s 0 -n A -n D -n E -n G
 ```
 
 ### Figure 14
 
+> [!NOTE]
+> This experiment supports selecting multiple `-h/--khs` values for comparison.
+
 ```bash
-python ./experiments/14.py --kr 6 --kh 2 --kh 4 --seed 0
+python ./experiments/14.py -r 6 -h 2 -h 4 -s 0 -n A -n D -n E -n G
 ```
 
 ### Figure 15
 
 > [!NOTE]
-> This experiment relies on the results of [Figure 5](#figure-5). Moreover, comparing
-> across different networks and different sets of parameters may not imply strong
-> correlation; try controlling variables instead.
+> This experiment relies on the results of [Figure 5](#figure-5). It uses `-c/--cases`
+> to select multiple network and parameter combinations to plot, different from other
+> scripts.
+
+> [!NOTE]
+> Comparing across different networks and different sets of parameters as in the paper
+> may not imply strong correlation; try controlling variables instead.
 
 ```bash
-python experiments/15.py --seed 0 \
+python ./experiments/15.py -s 0 \
     -c 2,2,A -c 2,2,D -c 2,2,E \
     -c 6,2,A -c 6,2,B -c 6,2,C -c 6,2,D -c 6,2,E -c 6,2,G \
     -c 6,4,A -c 6,4,B -c 6,4,C \
@@ -178,6 +190,34 @@ python experiments/15.py --seed 0 \
 
 ### Figure 16
 
+> [!NOTE]
+> Running time may vary on different devices, especially since the algorithms are
+> parallelized on all available CPU cores. It only makes sense to compare relatively
+> the running time of different algorithms.
+
 ```bash
-python experiments/16.py --kr 6 --kh 2 --seed 0 -n A -n C -n D -n E -n F -n H
+python ./experiments/16.py -r 6 -h 2 -s 0 -n A -n C -n D -n E -n F -n H
 ```
+
+[^1]: [NetHide](https://www.usenix.org/conference/usenixsecurity18/presentation/meier)
+is not open-source, thus our re-implementation in [nethide.py](./confmask/nethide.py).
+We directly store forwarding information in the `nethide/` directory of each network
+that supports NetHide evaluation to avoid the complicated setup of the Gurobi optimizer
+that it requires.
+
+[^2]: The reason for ConfMask not reaching the theoretical 100% might be some Batfish
+traceroute issue. There are several ways to validate that ConfMask reaches 100% in
+correspondence to the theoretical proof provided in the paper:
+
+- In the `_diff_routes` function in [gen.py](./gen.py), print out if any `next_hop` in
+  `h_rib_new` is not in `h_nh_old`. Validate that nothing is printed out in the last
+  iteration.
+- In the `_compare_with_origin` function in [8.py](./8.py), print out unmatched routes.
+  Then run `traceroute` manually between the source-destination pair in the original and
+  the anonymized networks, respectively. It should turn out that they actually match.
+
+[^3]: [Config2Spec](https://www.usenix.org/conference/nsdi20/presentation/birkner) is
+[open-source](https://github.com/nsg-ethz/config2spec). We use a slightly modified
+version to extract network specifications of ConfMask and NetHide for comparison. See
+[setup](#setup) for the Docker image of our version.
+
