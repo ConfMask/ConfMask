@@ -80,12 +80,11 @@ def _diff_routes(r, host_rib, host_rib_, H_networks):
 class _Algorithm:
     """The algorithm interface."""
 
-    def __init__(self, network, kr, kh, seed, force_overwrite, progress, task):
+    def __init__(self, network, kr, kh, seed, progress, task):
         self.network = network
         self.kr = kr
         self.kh = kh
         self.seed = seed
-        self.force_overwrite = force_overwrite
         self.progress = progress
         self.task = task
 
@@ -98,13 +97,7 @@ class _Algorithm:
         raise NotImplementedError
 
     def preprocessing(self):
-        """TODO
-
-        Returns
-        -------
-        skipped : bool
-            Whether the task is skipped.
-        """
+        """TODO"""
         network_dir = NETWORKS_DIR / self.network
         protocol = PROTOCOL_MAPPING[self.network]
         rng = np.random.default_rng(self.seed)
@@ -112,10 +105,6 @@ class _Algorithm:
 
         # Clean up and prepare the target directory
         target_dir = network_dir / self.target_name
-        if target_dir.exists() and not self.force_overwrite:
-            self._display(description="[yellow]Skipped")
-            return True  # Skip the task
-        self._display(description="Cleaning up target directory...")
         router_config_dir = target_dir / ROUTERS_SUBDIR
         host_config_dir = target_dir / HOSTS_SUBDIR
         if target_dir.exists():
@@ -247,8 +236,6 @@ class _Algorithm:
         self._R_map = R_map
         self._H_networks = H_networks
         self._fake_interfaces = fake_interfaces
-
-        return False
 
     def fix_routes(self):
         """TODO"""
@@ -597,6 +584,17 @@ def main(networks, algorithm, kr, kh, seed, force_overwrite):
     shared.display_title("Generate", algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks)
 
+    skipped_networks = []
+    if not force_overwrite:
+        for network in networks:
+            target_dir = (
+                NETWORKS_DIR
+                / network
+                / ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
+            )
+            if target_dir.exists():
+                skipped_networks.append(network)
+
     def _run_network_func(network, *, progress, task):
         clear_device_ids()
         clear_used_ips()
@@ -609,7 +607,7 @@ def main(networks, algorithm, kr, kh, seed, force_overwrite):
             AlgClass = ConfMask
         else:
             raise NotImplementedError  # unreachable
-        alg = AlgClass(network, kr, kh, seed, force_overwrite, progress, task)
+        alg = AlgClass(network, kr, kh, seed, progress, task)
         alg.run()
 
     def _clean_network_func(network):
@@ -618,7 +616,9 @@ def main(networks, algorithm, kr, kh, seed, force_overwrite):
         if target_dir.exists():
             shutil.rmtree(target_dir)
 
-    shared.display_progress(networks, _run_network_func, _clean_network_func)
+    shared.display_progress(
+        networks, skipped_networks, _run_network_func, _clean_network_func
+    )
 
 
 if __name__ == "__main__":

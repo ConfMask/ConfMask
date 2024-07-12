@@ -445,7 +445,8 @@ def run_network(network, algorithm, target, progress, task):
 @shared.cli_kh()
 @shared.cli_seed()
 @shared.cli_plot_only()
-def main(networks, algorithm, kr, kh, seed, plot_only):
+@shared.cli_force_overwrite()
+def main(networks, algorithm, kr, kh, seed, plot_only, force_overwrite):
     shared.display_title("Figure 09", algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     results = {}
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
@@ -461,6 +462,13 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
         shared.display_cmd_hints([("gen", missing_networks, algorithm, kr, kh, seed)])
         return
 
+    skipped_networks = []
+    if not force_overwrite:
+        results_file = RESULTS_DIR / f"9-{target}.json"
+        if results_file.exists():
+            with results_file.open("r", encoding="utf-8") as f:
+                skipped_networks = list(json.load(f))
+
     def _run_network_func(network, *, progress, task):
         _reset_globals()
         results[network] = run_network(network, algorithm, target, progress, task)
@@ -468,7 +476,9 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
     def _clean_network_func(network):
         _clean_temp_files(network, target)
 
-    shared.display_progress(networks, _run_network_func, _clean_network_func)
+    shared.display_progress(
+        networks, skipped_networks, _run_network_func, _clean_network_func
+    )
 
     # Merge results with existing (if any)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)

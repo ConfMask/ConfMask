@@ -99,7 +99,7 @@ def cli_force_overwrite():
         "-f",
         "--force-overwrite",
         is_flag=True,
-        help="Force overwrite existing data.",
+        help="Force overwrite existing data (skip otherwise).",
     )
 
 
@@ -130,13 +130,17 @@ def display_title(id, **kwargs):
     rich.print(f"[bold green]-> {id}[/bold green] [default]({params})")
 
 
-def display_progress(networks, run_network_func, clean_network_func=None, **kwargs):
+def display_progress(
+    networks, skipped_networks, run_network_func, clean_network_func=None, **kwargs
+):
     """Display the progress panel of running networks.
 
     Parameters
     ----------
     networks : list
-        List of networks to run.
+        List of networks to run (including those to skip).
+    skipped_networks : list
+        List of networks to skip.
     run_network_func : function
         Function to run for each network. It should take the network name as the first
         positional argument, keyword arguments `progress` and `task`, and any additional
@@ -159,12 +163,19 @@ def display_progress(networks, run_network_func, clean_network_func=None, **kwar
     ) as progress:
         tasks = {
             network: progress.add_task(
-                "(queued)", start=False, total=None, network=f"[{network}]", details=""
+                "[yellow]Skipped" if network in skipped_networks else "(queued)",
+                start=False,
+                total=None,
+                network=f"[{network}]",
+                details="",
             )
             for network in networks
         }
 
         for network in networks:
+            if network in skipped_networks:
+                continue
+
             task = tasks[network]
             try:
                 progress.start_task(task)
