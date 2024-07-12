@@ -100,7 +100,7 @@ def run_network(network, target, progress, task):
 @shared.cli_seed()
 @shared.cli_plot_only()
 def main(networks, algorithm, kr, kh, seed, plot_only):
-    shared.display_title("Figure 5", algorithm=algorithm, kr=kr, kh=kh, seed=seed)
+    shared.display_title("Figure 05", algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     results = {}
     target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
     networks = sorted(networks) if not plot_only else []

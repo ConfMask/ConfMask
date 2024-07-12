@@ -125,8 +125,8 @@ def display_title(id, **kwargs):
         Parameters to be displayed in the title. The keys are treated as the parameter
         names.
     """
-    params = ", ".join(f"{key}={repr(value)}" for key, value in kwargs.items())
-    rich.print(f"[green]━━━━━[/green] [bold]{id}[/bold] | {params} [green]━━━━━")
+    params = ", ".join(f"{key}={value}" for key, value in kwargs.items())
+    rich.print(f"[bold green]-> {id}[/bold green] [default]({params})")
 
 
 def display_progress(networks, run_network_func, clean_network_func=None, **kwargs):
