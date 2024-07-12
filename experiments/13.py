@@ -22,7 +22,7 @@ from config import ANONYM_NAME, RESULTS_DIR, STATS_FILE, NETWORKS_DIR
 @shared.cli_seed()
 def main(networks, algorithm, krs, kh, seed):
     shared.display_title(
-        13, algorithm=algorithm, kr=",".join(map(str, krs)), kh=kh, seed=seed
+        "Figure 13", algorithm=algorithm, kr=",".join(map(str, krs)), kh=kh, seed=seed
     )
     all_results = {}  # (kr, kh, network) -> config utility
     missing = defaultdict(list)  # (kr, kh) -> list of missing networks

@@ -25,7 +25,7 @@ from config import ANONYM_NAME, RESULTS_DIR, NETWORKS_DIR, STATS_FILE
 @shared.cli_algorithm()
 @shared.cli_seed()
 def main(cases, algorithm, seed):
-    shared.display_title(15, algorithm=algorithm, seed=seed)
+    shared.display_title("Figure 15", algorithm=algorithm, seed=seed)
     all_results = {}  # (kr, kh, network) -> (route anonymity, config utility)
     missing_anonymity = defaultdict(list)  # (kr, kh) -> list of missing networks
     missing_utility = defaultdict(list)  # (kr, kh) -> list of missing networks

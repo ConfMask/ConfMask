@@ -22,7 +22,7 @@ from config import ANONYM_NAME, RESULTS_DIR
 @shared.cli_seed()
 def main(networks, algorithm, kr, khs, seed):
     shared.display_title(
-        12, algorithm=algorithm, kr=kr, kh=",".join(map(str, khs)), seed=seed
+        "Figure 12", algorithm=algorithm, kr=kr, kh=",".join(map(str, khs)), seed=seed
     )
     all_results = {}  # (kr, kh, network) -> route anonymity
     missing = defaultdict(list)  # (kr, kh) -> list of missing networks

@@ -25,7 +25,7 @@ from config import (
 @shared.cli_kh()
 @shared.cli_seed()
 def main(network, kr, kh, seed):
-    shared.display_title(10, kr=kr, kh=kh, seed=seed)
+    shared.display_title("Figure 10", kr=kr, kh=kh, seed=seed)
     all_results = {}  # algorithm -> (route anonymity, config utility)
     anonymity_missing = []  # list of missing algorithms
     utility_missing = []  # list of missing algorithms

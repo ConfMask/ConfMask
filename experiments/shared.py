@@ -119,14 +119,14 @@ def display_title(id, **kwargs):
 
     Parameters
     ----------
-    id : any
+    id : str
         The identifier of the script.
     kwargs : dict
         Parameters to be displayed in the title. The keys are treated as the parameter
         names.
     """
     params = ", ".join(f"{key}={repr(value)}" for key, value in kwargs.items())
-    rich.get_console().rule(f"[bold]Figure {id}[/bold] | {params}", characters="━")
+    rich.get_console().rule(f"[bold]{id}[/bold] | {params}", characters="━")
 
 
 def display_progress(networks, run_network_func, clean_network_func=None, **kwargs):
