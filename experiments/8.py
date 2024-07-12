@@ -135,8 +135,6 @@ def run_network(network, algorithm, target, progress, task):
     origin_fd_tree = _load_fd_tree(ORIGIN_NAME, "Original")
 
     def _compare_with_origin(fd_tree):
-        rich.print(origin_fd_tree)
-        rich.print(fd_tree)
         """Get the proportion of exactly kept paths compared with original network."""
         n_same, n_total = 0, 0
         for src_gw, all_origin_paths in origin_fd_tree.items():
