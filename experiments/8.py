@@ -150,13 +150,13 @@ def run_network(network, algorithm, target, progress, task):
             # original forwarding tree so we count it here
             n_same += 1
             n_total += 1
-        return n_same / n_total
+        return n_same, n_total
 
     # Compare ConfMask with the original network
     _display(network=f"[{network}/{target_label}]")
     target_fd_tree = _load_fd_tree(target)
     _display(description="Comparing with original network...")
-    target_prop = _compare_with_origin(target_fd_tree)
+    target_same, target_total = _compare_with_origin(target_fd_tree)
 
     # Compare NetHide with the original network
     _display(network=f"[{network}/NetHide]", description="Loading data...")
@@ -169,17 +169,28 @@ def run_network(network, algorithm, target, progress, task):
         for dst_gw, path in dst_gw_paths.items():
             nethide_fd_tree[src_gw][dst_gw] = {"->".join(path)}
     _display(description="Comparing with original network...")
-    nethide_prop = _compare_with_origin(nethide_fd_tree)
+    nethide_same, nethide_total = _compare_with_origin(nethide_fd_tree)
 
     _display(
         network=f"[{network}]",
         description=(
             "[bold green]Done[/bold green]"
-            f" | {target_label}: {target_prop:.2%}"
-            f" | NetHide: {nethide_prop:.2%}"
+            f" | {target_label}: {target_same / target_total:.2%}"
+            f" | NetHide: {nethide_same / nethide_total:.2%}"
         ),
     )
-    return target_prop, nethide_prop
+    return {
+        "nethide": {
+            "kept": nethide_same,
+            "total": nethide_total,
+            "kept_ratio": nethide_same / nethide_total,
+        },
+        algorithm: {
+            "kept": target_same,
+            "total": target_total,
+            "kept_ratio": target_same / target_total,
+        },
+    }
 
 
 @click.command()
@@ -226,10 +237,10 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
         all_results = sorted(all_results.items())
         x, width = np.arange(len(all_results)), 0.4
         plt.figure()
-        plt.bar(x, [v for _, (_, v) in all_results], width, label="NetHide")
+        plt.bar(x, [v["nethide"]["kept_ratio"] for _, v in all_results], width, label="NetHide")
         plt.bar(
             x + width,
-            [v for _, (v, _) in all_results],
+            [v[algorithm]["kept_ratio"] for _, v in all_results],
             width,
             label=ALGORITHM_LABELS[algorithm],
         )

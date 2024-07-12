@@ -50,7 +50,7 @@ def run_network(network, algorithm, target, progress, task):
         network=f"[{network}]",
         description=f"[bold green]Done[/bold green] | {coef_origin:.3f} -> {coef_target:.3f}",
     )
-    return coef_origin, coef_target
+    return {"origin": coef_origin, algorithm: coef_target}
 
 
 @click.command()
@@ -97,10 +97,10 @@ def main(networks, algorithm, kr, kh, seed, plot_only):
         all_results = sorted(all_results.items())
         x, width = np.arange(len(all_results)), 0.4
         plt.figure()
-        plt.bar(x, [v for _, (v, _) in all_results], width, label="Original")
+        plt.bar(x, [v["origin"] for _, v in all_results], width, label="Original")
         plt.bar(
             x + width,
-            [v for _, (_, v) in all_results],
+            [v[algorithm] for _, v in all_results],
             width,
             label=ALGORITHM_LABELS[algorithm],
         )
