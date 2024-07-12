@@ -14,22 +14,22 @@ from rich.progress import Progress, TaskProgressColumn, TextColumn, TimeElapsedC
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
 
-from config import NETWORKS_DIR, CONFMASK_NAME, RESULTS_DIR, BF_HOST
+import shared
+from config import NETWORKS_DIR, RESULTS_DIR, BF_HOST, ANONYM_NAME
 
-SUPPORTED_NETWORKS = "ABCDEFGH"
 bf = Session(host=BF_HOST)
 
 
-def run_network(name, target, progress, task):
+def run_network(network, target, progress, task):
     """Execute the experiment for a single network."""
     progress.start_task(task)
 
     def _phase(description):
-        progress.update(task, description=f"[{name}] {description}")
+        progress.update(task, description=f"[{network}] {description}")
 
     _phase("Uploading configurations...")
-    bf.set_network(name)
-    bf.init_snapshot(str(NETWORKS_DIR / name / target), name=target, overwrite=True)
+    bf.set_network(network)
+    bf.init_snapshot(str(NETWORKS_DIR / network / target), name=target, overwrite=True)
     _phase("Querying topology...")
     topology = bf.q.layer3Edges().answer().frame()
     _phase("Processing...")
@@ -61,7 +61,6 @@ def run_network(name, target, progress, task):
                 if src_host == dst_host:
                     continue
 
-                # Traceroute
                 start_location = f"@enter({src_gw}[{gw_interfaces[src_host]}])"
                 trace_route = (
                     bf.q.traceroute(
@@ -75,8 +74,6 @@ def run_network(name, target, progress, task):
                     .frame()
                 )
                 _phase(f"{host_ips[src_host]} -> {host_ips[dst_host]}")
-
-                # Encode by the hops
                 path = trace_route.Traces[0][0]
                 paths_mem.add("->".join(hop.node for hop in path.hops[:-1]))
 
@@ -91,47 +88,39 @@ def run_network(name, target, progress, task):
         progress.update(task, advance=1)
 
     result = sum(all_num_paths) / len(all_num_paths)
-    _phase(f"[green]Done[/green] | {result=:.3f}")
+    _phase(f"[bold green]Done[/bold green] | {result=:.3f}")
     progress.stop_task(task)
     return result
 
 
 @click.command()
-@click.option(
-    "-n",
-    "--networks",
-    type=str,
-    default=SUPPORTED_NETWORKS,
-    show_default=True,
-    help="Networks to evaluate.",
-)
-@click.option("--kr", required=True, type=int, help="Router anonymization degree.")
-@click.option("--kh", required=True, type=int, help="Host anonymization degree.")
-@click.option("--seed", required=True, type=int, help="Random seed.")
-@click.option(
-    "--plot-only",
-    is_flag=True,
-    help="Plot based on stored results without running any evaluation. Ignores -n/--networks.",
-)
-def main(networks, kr, kh, seed, plot_only):
-    rich.get_console().rule(f"Figure 5 | {kr=}, {kh=}, {seed=}")
+@shared.cli_network(multiple=True)
+@shared.cli_algorithm()
+@shared.cli_kr()
+@shared.cli_kh()
+@shared.cli_seed()
+@shared.cli_plot_only()
+def main(networks, algorithm, kr, kh, seed, plot_only):
+    rich.get_console().rule(f"Figure 5 | {algorithm=}, {kr=}, {kh=}, {seed=}")
     results = {}
-    target = CONFMASK_NAME.format(kr=kr, kh=kh, seed=seed)
-    names = sorted(set(SUPPORTED_NETWORKS) & set(networks)) if not plot_only else []
+    target = ANONYM_NAME.format(algorithm=algorithm, kr=kr, kh=kh, seed=seed)
+    networks = sorted(networks) if not plot_only else []
 
-    if len(names) > 0:
+    if len(networks) > 0:
         with Progress(
             TimeElapsedColumn(),
             TaskProgressColumn(),
             TextColumn("{task.description}"),
         ) as progress:
             tasks = {
-                name: progress.add_task(f"[{name}] (queued)", start=False, total=None)
-                for name in names
+                network: progress.add_task(
+                    f"[{network}] (queued)", start=False, total=None
+                )
+                for network in networks
             }
-            for name in names:
-                result = run_network(name, target, progress, tasks[name])
-                results[name] = result
+            for network in networks:
+                result = run_network(network, target, progress, tasks[network])
+                results[network] = result
 
     # Merge results with existing (if any)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)

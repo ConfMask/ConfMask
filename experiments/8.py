@@ -165,13 +165,15 @@ def run_network(name, target, progress, task):
     #         nethide_traces[src_host][dst_host] = nethide_fd_tree[src_gw][dst_gw]
     # _phase("[NetHide] Comparing with original network...")
     # nethide_prop = _compare_with_origin(nethide_traces)
+    nethide_prop = 0
 
-    # _phase(
-    #     f"[green]Done[/green] | Confmask: {confmask_prop:.2%} | NetHide: {nethide_prop:.2%}"
-    # )
-    _phase(f"[green]Done[/green] | Confmask: {confmask_prop:.2%}")
+    _phase(
+        "[bold green]Done[/bold green]"
+        f" | ConfMask: {confmask_prop:.2%}"
+        f" | NetHide: {nethide_prop:.2%}"
+    )
     progress.stop_task(task)
-    return confmask_prop, 0  # XXX: nethide_prop
+    return confmask_prop, nethide_prop
 
 
 @click.command()
@@ -234,7 +236,7 @@ def main(networks, kr, kh, seed, plot_only):
         plt.ylim(0, 1)
         plt.xticks(x + width / 2, [f"Net{k}" for k, _ in all_results])
         plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1.0))
-        plt.legend(loc="upper left")
+        plt.legend()
         plt.tight_layout()
         plt.savefig(RESULTS_DIR / f"8-{target}.png")
 

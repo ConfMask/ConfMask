@@ -5,6 +5,11 @@ TODO
 _used_ips = set()
 
 
+def clear_used_ips():
+    """Clear the used IPs set."""
+    _used_ips.clear()
+
+
 def generate_unicast_ip(rng, b0=None, b1=None, b2=None, b3=None):
     """Generate a randpm unicast IP.
 

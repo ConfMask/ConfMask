@@ -11,6 +11,12 @@ _router_ids = set()
 _host_ids = set()
 
 
+def clear_device_ids():
+    """Clear the used router and host IDs."""
+    _router_ids.clear()
+    _host_ids.clear()
+
+
 def _generate_router_id(rng):
     """Generate a unique router ID."""
     rid = rng.integers(100, 1000, dtype=int)
@@ -46,10 +52,12 @@ class _Line(str):
         instance.state = state
         return instance
 
-    def __repr__(self):
-        if self.state == 0:
-            return super().__repr__()
-        return f"\033[31m{super().__repr__()}\033[39m"
+    def line_repr(self):
+        """Representation of a line with a comment above if modified."""
+        if self.state == 1:
+            leading = self[: len(self) - len(self.lstrip())]
+            return f"{leading}!!! Modified\n{self}"
+        return self
 
 
 class RouterConfigFile:
@@ -175,21 +183,8 @@ class RouterConfigFile:
                 protocol = "bgp"
 
         if protocol == "ospf":
-            group = None
-            for ospf_line in self._contents["ospf"]:
-                if "area" in ospf_line:
-                    group = ospf_line.strip().split()[-1]
-                    break
-            if group is None:
-                proc = self._contents["ospf"][0].strip().split()[-1]
-                for interface_lines in self._contents["interface"]:
-                    for interface_line in interface_lines:
-                        if f"ip ospf {proc}" in interface_line:
-                            group = interface_line.strip().split()[-1]
-                            break
-            assert group is not None
             self._contents["ospf"].insert(
-                2, _Line(f" network {network_addr} 0.0.0.255 area {group}\n")
+                2, _Line(f" network {network_addr} 0.0.0.255 area 0\n")
             )
 
         elif protocol == "bgp":
@@ -287,7 +282,6 @@ class RouterConfigFile:
             self._contents["filter"][interface].insert(
                 0, _Line(f"ip prefix-list {filter_name} deny {prefix}\n")
             )
-            return
         elif protocol == "bgp":
             if neighbor not in self._contents["filter"]:
                 filter_no = len(self._contents["filter"]) + 1
@@ -305,6 +299,55 @@ class RouterConfigFile:
                 ),
             )
 
+    def strawman_add_filter(self, prefixes, interface, neighbor, protocol):
+        """Add filter to the configuration file, used in strawmans.
+
+        Parameters
+        ----------
+        prefixes : list of IPv4Network
+            The list of IP prefixes.
+        interface : str
+            The interface name.
+        neighbor : str
+            The neighbor IP address.
+        protocol : str
+            The routing protocol.
+        """
+        if protocol == "ospf":
+            assert interface is not None
+            if interface not in self._contents["filter"]:
+                filter_name = f"filter_{len(self._contents['filter']) + 1}"
+                self._contents["ospf"].append(
+                    _Line(f" distribute-list prefix {filter_name} in {interface}\n")
+                )
+                self._contents["filter"][interface] = [
+                    _Line(f"ip prefix-list {filter_name} permit 0.0.0.0/0 le 32\b")
+                ]
+            filter_name = self._contents["filter"][interface][-1].strip().split()[2]
+            self._contents["filter"][interface] = [
+                _Line(f"ip prefix-list {filter_name} deny {prefix}\n")
+                for prefix in prefixes
+            ] + self._contents["filter"][interface]
+        elif protocol == "bgp":
+            assert neighbor is not None
+            if neighbor not in self._contents["filter"]:
+                filter_no = len(self._contents["filter"]) + 1
+                self._contents["bgp"].append(
+                    _Line(f" neighbor {neighbor} distribute-list {filter_no} in\n")
+                )
+                self._contents["filter"][neighbor] = [
+                    _Line(f"access-list {filter_no} permit any\n")
+                ]
+            filter_no = self._contents["filter"][neighbor][-1].strip().split()[1]
+            self._contents["filter"][neighbor] = [
+                _Line(
+                    f"access-list {filter_no} deny {prefix.network_address} {prefix.hostmask}\n"
+                )
+                for prefix in prefixes
+            ] + self._contents["filter"][neighbor]
+        else:
+            assert False, f"{protocol} is not applicable"
+
     def incr_ospf_cost(self):
         """Increment OSPF cost of fake interfaces."""
         for i, cost in self._fake_interfaces.items():
@@ -321,68 +364,90 @@ class RouterConfigFile:
         """Check if the router has the given protocol."""
         return len(self._contents[protocol]) > 0
 
-    def count_modified_lines(self):
-        """Count the number of lines modified in the configuration file.
+    def count_lines(self):
+        """Count the number of lines modified and in total in the configuration file.
 
         Returns
         -------
-        lines_modified : dict
-            The number of modified lines for interface, routing protocols, and filters.
+        lines_count : dict
+            The number of modified and total lines for interface, routing protocols, and
+            filters, respectively.
         """
+        interface_lines_total, interface_lines_modified = 0, 0
+        for block in self._contents["interface"]:
+            for line in block:
+                interface_lines_total += 1
+                if line.state == 1:
+                    interface_lines_modified += 1
+
+        protocol_lines_total, protocol_lines_modified = 0, 0
+        for block in self._contents["ospf"]:
+            protocol_lines_total += 1
+            if block.state == 1:
+                protocol_lines_modified += 1
+        for block in self._contents["bgp"]:
+            protocol_lines_total += 1
+            if block.state == 1:
+                protocol_lines_modified += 1
+        for block in self._contents["bgp_address_family"]:
+            for line in block:
+                protocol_lines_total += 1
+                if line.state == 1:
+                    protocol_lines_modified += 1
+
+        filter_lines_total, filter_lines_modified = 0, 0
+        for block in self._contents["filter"].values():
+            for line in block:
+                filter_lines_total += 1
+                if line.state == 1:
+                    filter_lines_modified += 1
+
         return {
-            "interface": sum(
-                1
-                for block in self._contents["interface"]
-                for line in block
-                if line.state == 1
-            ),
-            "protocol": (
-                sum(1 for line in self._contents["ospf"] if line.state == 1)
-                + sum(1 for line in self._contents["bgp"] if line.state == 1)
-                + sum(
-                    1
-                    for block in self._contents["bgp_address_family"]
-                    for line in block
-                    if line.state == 1
-                )
-            ),
-            "filter": sum(
-                1
-                for block in self._contents["filter"].values()
-                for line in block
-                if line.state == 1
-            ),
+            "modified": {
+                "interface": interface_lines_modified,
+                "protocol": protocol_lines_modified,
+                "filter": filter_lines_modified,
+            },
+            "total": {
+                "interface": interface_lines_total,
+                "protocol": protocol_lines_total,
+                "filter": filter_lines_total,
+            },
         }
 
     def emit(self, dir):
         """Emit the configuration files to the given directory."""
-        lines = []
-        for block in self._contents["prolog"]:
-            lines.append("!\n")
-            lines.extend(block)
-        for block in self._contents["interface"]:
-            lines.append("!\n")
-            lines.extend(block)
-        if len(self._contents["ospf"]) > 0:
-            lines.append("!\n")
-            lines.extend(self._contents["ospf"])
-        if len(self._contents["bgp"]) > 0:
-            lines.append("!\n")
-            lines.extend(self._contents["bgp"])
-            if len(self._contents["bgp_address_family"]) > 0:
-                for block in self._contents["bgp_address_family"]:
-                    lines.append(" !\n")
-                    lines.extend(block)
-        if len(self._contents["filter"]) > 0:
-            for filter_lines in self._contents["filter"].values():
-                lines.append("!\n")
-                lines.extend(filter_lines)
-        for block in self._contents["epilog"]:
-            lines.append("!\n")
-            lines.extend(block)
-
         with (dir / f"{self._name_ori}.cfg").open("w", encoding="utf-8") as f:
-            f.writelines(lines)
+            for block in self._contents["prolog"]:
+                f.write("!\n")
+                for line in block:
+                    f.write(line.line_repr())
+            for block in self._contents["interface"]:
+                f.write("!\n")
+                for line in block:
+                    f.write(line.line_repr())
+            if len(self._contents["ospf"]) > 0:
+                f.write("!\n")
+                for line in self._contents["ospf"]:
+                    f.write(line.line_repr())
+            if len(self._contents["bgp"]) > 0:
+                f.write("!\n")
+                for line in self._contents["bgp"]:
+                    f.write(line.line_repr())
+                if len(self._contents["bgp_address_family"]) > 0:
+                    for block in self._contents["bgp_address_family"]:
+                        f.write("!\n")
+                        for line in block:
+                            f.write(line.line_repr())
+            if len(self._contents["filter"]) > 0:
+                for filter_lines in self._contents["filter"].values():
+                    f.write("!\n")
+                    for line in filter_lines:
+                        f.write(line.line_repr())
+            for block in self._contents["epilog"]:
+                f.write("!\n")
+                for line in block:
+                    f.write(line.line_repr())
 
     @property
     def name_ori(self):

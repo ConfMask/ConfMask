@@ -34,8 +34,8 @@ python -m pip install -e .
 Pull the necessary docker images and run Batfish:
 
 ```bash
-docker pull ghcr.io/nyu-netsys/confmask-config2spec:latest
 docker pull batfish/allinone
+docker pull ghcr.io/confmask/confmask-config2spec:latest  # Used for Experiment 9 
 docker run --name batfish -v batfish-data:/data -p 8888:8888 -p 9997:9997 -p 9996:9996 batfish/allinone
 ```
 
@@ -63,7 +63,7 @@ not want to start over.
 Run the ConfMask algorithm (required for all evaluations):
 
 ```bash
-# Repeat for `-n A` through `-n H`
+# See run.sh for minimum required ones to complete the evaluation suite
 python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A
 ```
 
@@ -71,7 +71,9 @@ Run the strawman algorithms (required for [Figure 10](#figure-10) and
 [Figure 16](#figure-16)):
 
 ```bash
-# TODO
+# See run.sh for minimum required ones to complete the evaluation suite
+python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A -a strawman1
+python experiments/gen.py --kr 6 --kh 2 --seed 0 -n A -a strawman2
 ```
 
 ### Figure 5
@@ -122,42 +124,60 @@ python experiments/9.py --kr 6 --kh 2 --seed 0
 
 ### Figure 10
 
+> [!NOTE]
+> This experiment relies on the results of [Figure 5](#figure-5).
+
 ```bash
-python experiments/10.py --kr 6 --kh 2  # TODO
+python ./experiments/10.py --kr 6 --kh 2 --seed 0 -n A
 ```
 
 ### Figure 11
 
+> [!NOTE]
+> This experiment relies on the results of [Figure 5](#figure-5).
+
 ```bash
-python experiments/11.py --kr 6 --kh 2  # TODO
+python ./experiments/11.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
 ```
 
 ### Figure 12
 
+> [!NOTE]
+> This experiment relies on the results of [Figure 5](#figure-5).
+
 ```bash
-python experiments/12.py --kr 6 --kh 2  # TODO
+python ./experiments/12.py --kr 6 --kh 2 --kh 4 --kh 6 --seed 0
 ```
 
 ### Figure 13
 
 ```bash
-python experiments/13.py --kr 6 --kh 2  # TODO
+python ./experiments/13.py --kr 2 --kr 6 --kr 10 --kh 2 --seed 0
 ```
 
 ### Figure 14
 
 ```bash
-python experiments/14.py --kr 6 --kh 2  # TODO
+python ./experiments/14.py --kr 6 --kh 2 --kh 4 --seed 0
 ```
 
 ### Figure 15
 
+> [!NOTE]
+> This experiment relies on the results of [Figure 5](#figure-5). Moreover, comparing
+> across different networks and different sets of parameters may not imply strong
+> correlation; try controlling variables instead.
+
 ```bash
-python experiments/15.py --kr 6 --kh 2  # TODO
+python experiments/15.py --seed 0 \
+    -c 2,2,A -c 2,2,D -c 2,2,E \
+    -c 6,2,A -c 6,2,B -c 6,2,C -c 6,2,D -c 6,2,E -c 6,2,G \
+    -c 6,4,A -c 6,4,B -c 6,4,C \
+    -c 10,2,A -c 10,2,D -c 10,2,E
 ```
 
 ### Figure 16
 
 ```bash
-python experiments/16.py --kr 6 --kh 2  # TODO
+python experiments/16.py --kr 6 --kh 2 --seed 0 -n A -n C -n D -n E -n F -n H
 ```
