@@ -10,21 +10,20 @@ import click
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
+import shared
+from config import (
+    ALGORITHM_LABELS,
+    ANONYM_NAME,
+    BF_HOST,
+    NETHIDE_FORWARDING_FILE,
+    NETHIDE_NAME,
+    NETWORKS_DIR,
+    ORIGIN_NAME,
+    RESULTS_DIR,
+)
 from joblib import Parallel, delayed
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
-
-import shared
-from config import (
-    NETWORKS_DIR,
-    ANONYM_NAME,
-    RESULTS_DIR,
-    ORIGIN_NAME,
-    NETHIDE_NAME,
-    NETHIDE_FORWARDING_FILE,
-    BF_HOST,
-    ALGORITHM_LABELS,
-)
 
 bf = Session(host=BF_HOST)
 

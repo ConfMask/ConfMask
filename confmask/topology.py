@@ -2,8 +2,9 @@
 Implementation of the topology obfuscation algorithm.
 """
 
-import numpy as np
 from copy import deepcopy
+
+import numpy as np
 
 
 def _sorted_degree_sequence(graph):

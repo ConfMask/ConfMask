@@ -4,12 +4,10 @@ import shlex
 
 import click
 import rich
+from config import ALGORITHMS, AVAIL_NETHIDE_NETWORKS, AVAIL_NETWORKS
 from rich.panel import Panel
-from rich.progress import Progress, TimeElapsedColumn, TextColumn
+from rich.progress import Progress, TextColumn, TimeElapsedColumn
 from rich.table import Column
-
-from config import ALGORITHMS, AVAIL_NETWORKS, AVAIL_NETHIDE_NETWORKS
-
 
 ### CLI options ###
 

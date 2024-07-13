@@ -8,15 +8,14 @@ from collections import defaultdict
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-
 import shared
 from config import (
-    RESULTS_DIR,
-    STATS_FILE,
-    NETWORKS_DIR,
+    ALGORITHM_LABELS,
     ALGORITHMS,
     ANONYM_NAME,
-    ALGORITHM_LABELS,
+    NETWORKS_DIR,
+    RESULTS_DIR,
+    STATS_FILE,
 )
 
 

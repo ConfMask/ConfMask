@@ -2,8 +2,8 @@
 Parser for configuration files.
 """
 
-import json
 import ipaddress
+import json
 
 from confmask.ip import generate_unicast_ip
 

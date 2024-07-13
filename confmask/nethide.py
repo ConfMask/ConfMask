@@ -2,9 +2,10 @@
 Implementation of the topology obfuscation algorithm in NetHide.
 """
 
+from itertools import combinations, permutations
+
 import gurobipy as gp
 import networkx as nx
-from itertools import combinations, permutations
 from Levenshtein import distance
 
 

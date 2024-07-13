@@ -8,18 +8,18 @@ from collections import Counter
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-from confmask.utils import analyze_topology
-from pybatfish.client.session import Session
-
 import shared
 from config import (
-    NETWORKS_DIR,
-    RESULTS_DIR,
-    ORIGIN_NAME,
-    BF_HOST,
-    ANONYM_NAME,
     ALGORITHM_LABELS,
+    ANONYM_NAME,
+    BF_HOST,
+    NETWORKS_DIR,
+    ORIGIN_NAME,
+    RESULTS_DIR,
 )
+from pybatfish.client.session import Session
+
+from confmask.utils import analyze_topology
 
 bf = Session(host=BF_HOST)
 

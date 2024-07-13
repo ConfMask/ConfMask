@@ -6,15 +6,14 @@ import json
 
 import click
 import matplotlib.pyplot as plt
-
 import shared
 from config import (
-    ANONYM_NAME,
-    RESULTS_DIR,
-    NETWORKS_DIR,
-    STATS_FILE,
-    ALGORITHMS,
     ALGORITHM_LABELS,
+    ALGORITHMS,
+    ANONYM_NAME,
+    NETWORKS_DIR,
+    RESULTS_DIR,
+    STATS_FILE,
 )
 
 

@@ -8,7 +8,6 @@ from collections import defaultdict
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-
 import shared
 from config import ANONYM_NAME, RESULTS_DIR
 

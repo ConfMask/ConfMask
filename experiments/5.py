@@ -8,12 +8,11 @@ from itertools import permutations
 
 import click
 import matplotlib.pyplot as plt
+import shared
+from config import ANONYM_NAME, BF_HOST, NETWORKS_DIR, RESULTS_DIR
 from joblib import Parallel, delayed
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
-
-import shared
-from config import NETWORKS_DIR, RESULTS_DIR, BF_HOST, ANONYM_NAME
 
 bf = Session(host=BF_HOST)
 

@@ -10,26 +10,26 @@ from itertools import permutations
 import click
 import numpy as np
 import pandas as pd
-from confmask.ip import generate_unicast_ip, clear_used_ips
-from confmask.parser import HostConfigFile, RouterConfigFile, clear_device_ids
-from confmask.topology import k_degree_anonymization
-from confmask.utils import analyze_topology
+import shared
+from config import (
+    ANONYM_NAME,
+    BF_HOST,
+    HOSTS_SUBDIR,
+    NETWORKS_DIR,
+    ORIGIN_NAME,
+    PROTOCOL_MAPPING,
+    ROUTERS_SUBDIR,
+    STATS_FILE,
+)
 from joblib import Parallel, delayed
 from pybatfish.client.session import Session
 from pybatfish.datamodel.flow import HeaderConstraints
 from pybatfish.datamodel.primitives import Interface
 
-import shared
-from config import (
-    NETWORKS_DIR,
-    ORIGIN_NAME,
-    ANONYM_NAME,
-    PROTOCOL_MAPPING,
-    ROUTERS_SUBDIR,
-    HOSTS_SUBDIR,
-    STATS_FILE,
-    BF_HOST,
-)
+from confmask.ip import clear_used_ips, generate_unicast_ip
+from confmask.parser import HostConfigFile, RouterConfigFile, clear_device_ids
+from confmask.topology import k_degree_anonymization
+from confmask.utils import analyze_topology
 
 bf = Session(host=BF_HOST)
 

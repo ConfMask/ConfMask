@@ -14,23 +14,22 @@ import click
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
-from joblib import Parallel, delayed
-from pybatfish.client.session import Session, HeaderConstraints
-from pybatfish.datamodel.flow import PathConstraints
-
 import shared
 from config import (
-    NETWORKS_DIR,
+    ALGORITHM_LABELS,
     ANONYM_NAME,
-    RESULTS_DIR,
-    ORIGIN_NAME,
-    NETHIDE_NAME,
+    BF_HOST,
     NETHIDE_FORWARDING_FILE,
     NETHIDE_FORWARDING_ORIGIN_FILE,
+    NETHIDE_NAME,
+    NETWORKS_DIR,
+    ORIGIN_NAME,
     PROTOCOL_MAPPING,
-    BF_HOST,
-    ALGORITHM_LABELS,
+    RESULTS_DIR,
 )
+from joblib import Parallel, delayed
+from pybatfish.client.session import HeaderConstraints, Session
+from pybatfish.datamodel.flow import PathConstraints
 
 bf = Session(host=BF_HOST)
 
