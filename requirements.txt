@@ -1,10 +1,12 @@
 click
-gurobipy==11.0.2
 joblib
-levenshtein
 matplotlib
 networkx==3.3
 numpy==2.0.0
 pybatfish==2023.12.16.1270
 rich
 setuptools
+
+# The following are not needed if you do not run our re-implementation of NetHide
+gurobipy==11.0.2
+levenshtein

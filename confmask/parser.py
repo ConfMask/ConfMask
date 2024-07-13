@@ -518,10 +518,6 @@ class HostConfigFile:
             with (dir / f"host{fake_id}.json").open("w", encoding="utf-8") as f:
                 json.dump(fake_content, f, indent=2)
 
-    def emit_fakes(self, dir):
-        """Emit the fake configuration files to the given directory."""
-        pass  # TODO
-
     @property
     def name(self):
         return self._contents["hostname"]

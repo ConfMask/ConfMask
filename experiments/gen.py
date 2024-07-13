@@ -93,11 +93,14 @@ class _Algorithm:
 
     @property
     def target_name(self):
-        """TODO"""
+        """Return the name of the target.
+
+        Subclasses must override this property.
+        """
         raise NotImplementedError
 
     def preprocessing(self):
-        """TODO"""
+        """Preprocessing until the route-fixing step."""
         network_dir = NETWORKS_DIR / self.network
         protocol = PROTOCOL_MAPPING[self.network]
         rng = np.random.default_rng(self.seed)
@@ -238,11 +241,14 @@ class _Algorithm:
         self._fake_interfaces = fake_interfaces
 
     def fix_routes(self):
-        """TODO"""
+        """Fix the routes.
+
+        Subclasses must override this method.
+        """
         raise NotImplementedError
 
     def output(self, message):
-        """TODO"""
+        """Output the anonymized configurations and statistics."""
         self._display(description="Writing configurations...")
         for _, rcf in self._R_map.values():
             rcf.emit(self._target_dir / ROUTERS_SUBDIR)
@@ -273,9 +279,7 @@ class _Algorithm:
 
     def run(self):
         """Run the algorithm."""
-        skipped = self.preprocessing()
-        if skipped:
-            return
+        self.preprocessing()
         message = self.fix_routes()
         self.output(message)
 
@@ -323,7 +327,6 @@ class ConfMask(_Algorithm):
                 self._display(details=f"({n_done}/{n_total})")
             self._display(details="")
 
-            # TODO
             if self._protocol == "ospf" and len(ospf_list) > 0:
                 self._display(description="Incrementing OSPF cost...")
                 for node in ospf_list:
@@ -490,7 +493,6 @@ class Strawman2(_Algorithm):
             if len(ospf_list) == 0:
                 break
 
-            # TODO
             if self._protocol == "ospf" and len(ospf_list) > 0:
                 self._display(description="Incrementing OSPF cost...")
                 for node in ospf_list:

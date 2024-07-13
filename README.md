@@ -1,5 +1,8 @@
 # ConfMask
 
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 This repository contains the source code and evaluation scripts for the paper
 [*ConfMask: Enabling Privacy-Preserving Configuration Sharing via Anonymization*](./paper.pdf).
 
@@ -52,12 +55,11 @@ docker pull ghcr.io/confmask/confmask-config2spec:latest
 ## Evaluation
 
 Run [run.sh](./run.sh) on Unix or [run.ps1](./run.ps1) on Windows to run the full
-evaluation suite. If anything fails during the run, simply re-run the script and
-completed generation and evaluation tasks will be automatically skipped.
+evaluation suite. If anything fails during the run, **simply re-run the script** and
+completed generation and evaluation tasks will be **automatically skipped.**
 
-> [!TIP]
-> Run in a terminal window of at least 75 characters wide to enable full display of the
-> execution progress.
+Run in a terminal window of at least 75 characters wide to enable full display of the
+execution progress.
 
 ## Evaluation Details
 
@@ -82,6 +84,18 @@ with either the ConfMask algorithm or the strawman algorithms mentioned in the p
 - Use `-r/--kr` and `-h/--kh` to specify the anonymization degrees.
 - Use `-s/--seed` to specify a particular random seed.
 
+The minimal set of commands required for the full evaluation suite is as follows:
+
+```bash
+python ./experiments/gen.py -r 2 -h 2 -s 0 -n A -n D -n E -n G
+python ./experiments/gen.py -r 6 -h 2 -s 0 -n A -n B -n C -n D -n E -n F -n G -n H
+python ./experiments/gen.py -r 6 -h 4 -s 0 -n A -n B -n C -n D -n E -n G
+python ./experiments/gen.py -r 6 -h 6 -s 0 -n A -n B -n C
+python ./experiments/gen.py -r 10 -h 2 -s 0 -n A -n D -n E -n G
+python ./experiments/gen.py -r 6 -h 2 -s 0 -n A -n C -n D -n E -n F -n H -a strawman1
+python ./experiments/gen.py -r 6 -h 2 -s 0 -n A -n C -n D -n E -n F -n H -a strawman2
+```
+
 ### Figure 5
 
 ```bash
@@ -102,11 +116,17 @@ python ./experiments/7.py -r 6 -h 2 -s 0 -n A -n B -n C -n D -n E -n F -n G -n H
 
 ### Figure 8
 
+This experiment involves NetHide[^1], thus only a subset of networks is supported. Use
+`--help` to check.
+
+```bash
+python ./experiments/8.py -r 6 -h 2 -s 0 -n A -n D -n G
+```
+
 > [!NOTE]
-> This experiment involves NetHide[^1], thus only a subset of networks is supported.
-> Also note that ConfMask should reach a theoretical 100% in this experiment but this
-> may not always be the case with this script, likely because of some Batfish traceroute
-> issues. There are several ways to manually validate the theoretical 100%:
+> ConfMask should reach a theoretical 100% in this experiment but this may not always be
+> the case with this script, likely due to some Batfish traceroute issues. There are
+> several ways to manually validate the theoretical 100% route preservation of ConfMask:
 >
 > - In the `_diff_routes` function in [gen.py](./gen.py), print out if any `next_hop` in
 >   `h_rib_new` is not in `h_nh_old`. Validate that nothing is printed out in the last
@@ -115,15 +135,10 @@ python ./experiments/7.py -r 6 -h 2 -s 0 -n A -n B -n C -n D -n E -n F -n G -n H
 >   routes. Then run `traceroute` manually between the source-destination pair in the
 >   original and anonymized networks, respectively. It should turn out that they match.
 
-```bash
-python ./experiments/8.py -r 6 -h 2 -s 0 -n A -n D -n G
-```
-
 ### Figure 9
 
-> [!NOTE]
-> This experiment involves NetHide[^1] and Config2Spec[^2], thus only a subset of
-> networks is supported.
+This experiment involves NetHide[^1] and Config2Spec[^2], thus only a subset of networks
+is supported. Use `--help` to check.
 
 ```bash
 python ./experiments/9.py -r 6 -h 4 -s 0 -n A -n B -n C -n D -n G
@@ -131,9 +146,8 @@ python ./experiments/9.py -r 6 -h 4 -s 0 -n A -n B -n C -n D -n G
 
 ### Figure 10
 
-> [!NOTE]
-> This experiment relies on the results of [Figure 5](#figure-5). It supports selecting
-> only one network at a time.
+This experiment relies on the results of [Figure 5](#figure-5). It supports selecting
+only one network at a time.
 
 ```bash
 python ./experiments/10.py -r 6 -h 2 -s 0 -n A
@@ -141,9 +155,8 @@ python ./experiments/10.py -r 6 -h 2 -s 0 -n A
 
 ### Figure 11
 
-> [!NOTE]
-> This experiment relies on the results of [Figure 5](#figure-5). It supports selecting
-> multiple `-r/--krs` values for comparison.
+This experiment relies on the results of [Figure 5](#figure-5). It supports selecting
+multiple `-r/--krs` values for comparison.
 
 ```bash
 python ./experiments/11.py -r 2 -r 6 -r 10 -h 2 -s 0 -n A -n D -n E -n G
@@ -151,9 +164,8 @@ python ./experiments/11.py -r 2 -r 6 -r 10 -h 2 -s 0 -n A -n D -n E -n G
 
 ### Figure 12
 
-> [!NOTE]
-> This experiment relies on the results of [Figure 5](#figure-5). It supports selecting
-> multiple `-h/--khs` values for comparison.
+This experiment relies on the results of [Figure 5](#figure-5). It supports selecting
+multiple `-h/--khs` values for comparison.
 
 ```bash
 python ./experiments/12.py -r 6 -h 2 -h 4 -h 6 -s 0 -n A -n B -n C
@@ -161,8 +173,7 @@ python ./experiments/12.py -r 6 -h 2 -h 4 -h 6 -s 0 -n A -n B -n C
 
 ### Figure 13
 
-> [!NOTE]
-> This experiment supports selecting multiple `-r/--krs` values for comparison.
+This experiment supports selecting multiple `-r/--krs` values for comparison.
 
 ```bash
 python ./experiments/13.py -r 2 -r 6 -r 10 -h 2 -s 0 -n A -n D -n E -n G
@@ -170,8 +181,7 @@ python ./experiments/13.py -r 2 -r 6 -r 10 -h 2 -s 0 -n A -n D -n E -n G
 
 ### Figure 14
 
-> [!NOTE]
-> This experiment supports selecting multiple `-h/--khs` values for comparison.
+This experiment supports selecting multiple `-h/--khs` values for comparison.
 
 ```bash
 python ./experiments/14.py -r 6 -h 2 -h 4 -s 0 -n A -n D -n E -n G
@@ -179,12 +189,11 @@ python ./experiments/14.py -r 6 -h 2 -h 4 -s 0 -n A -n D -n E -n G
 
 ### Figure 15
 
-> [!NOTE]
-> This experiment relies on the results of [Figure 5](#figure-5). It uses `-c/--cases`
-> to select multiple network and parameter combinations to plot, different from other
-> scripts. However, note that comparing across different networks and different sets of
-> parameters as in the paper may not imply strong correlation; you may also try
-> controlling variables instead.
+This experiment relies on the results of [Figure 5](#figure-5). It uses `-c/--cases` to
+select multiple network and parameter combinations to plot, different from other
+scripts. However, note that comparing across different networks and different sets of
+parameters as in the paper may not imply strong correlation; try controlling variables
+instead.
 
 ```bash
 python ./experiments/15.py -s 0 \
@@ -196,10 +205,9 @@ python ./experiments/15.py -s 0 \
 
 ### Figure 16
 
-> [!NOTE]
-> Running time may vary on different devices, especially since the algorithms are
-> parallelized on all available CPU cores. It only makes sense to compare relatively
-> the running time of different algorithms.
+Running time may vary on different devices, especially since the algorithms are
+parallelized on all available CPU cores. It only makes sense to compare relatively the
+running time of different algorithms.
 
 ```bash
 python ./experiments/16.py -r 6 -h 2 -s 0 -n A -n C -n D -n E -n F -n H
@@ -215,4 +223,3 @@ that it requires.
 [open-source](https://github.com/nsg-ethz/config2spec). We use a slightly modified
 version to extract network specifications of ConfMask and NetHide for comparison. See
 [setup](#setup) for the Docker image of our version.
-
