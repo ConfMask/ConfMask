@@ -536,22 +536,14 @@ class Strawman2(_Algorithm):
 
                             # Modify the last matching hop
                             target_r = origin_paths_mem[mx_idx][mx_mismatch - 1]
-                            if self._protocol == "ospf":
-                                for step in path_info[mx_mismatch - 1].steps:
-                                    if step.action == "TRANSMITTED":
-                                        next_hop_interface = step.detail.outputInterface
-                                        self._R_map[target_r][1].strawman_add_filter(
-                                            [ipaddress.ip_network(dst_ip)],
-                                            next_hop_interface,
-                                            None,
-                                            "ospf",
-                                        )
-                                        break
-                            elif self._protocol == "bgp":
+                            target_rcf = self._R_map[target_r][1]
+                            if self._protocol == "bgp" and target_rcf.has_protocol(
+                                "bgp"
+                            ):
                                 for step in path_info[mx_mismatch - 1].steps:
                                     if step.action == "FORWARDED":
                                         neighbor = step.detail.routes[0].nextHop.ip
-                                        self._R_map[target_r][1].add_distribute_list(
+                                        target_rcf.add_distribute_list(
                                             # XXX: Hardcoded because we know our
                                             # networks are /24; generalize if needed
                                             ipaddress.ip_network(
@@ -560,6 +552,17 @@ class Strawman2(_Algorithm):
                                             None,
                                             neighbor,
                                             "bgp",
+                                        )
+                                        break
+                            else:
+                                for step in path_info[mx_mismatch - 1].steps:
+                                    if step.action == "TRANSMITTED":
+                                        next_hop_interface = step.detail.outputInterface
+                                        target_rcf.strawman_add_filter(
+                                            [ipaddress.ip_network(dst_ip)],
+                                            next_hop_interface,
+                                            None,
+                                            "ospf",
                                         )
                                         break
 

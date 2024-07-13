@@ -186,7 +186,6 @@ class RouterConfigFile:
             self._contents["ospf"].insert(
                 2, _Line(f" network {network_addr} 0.0.0.255 area 0\n")
             )
-
         elif protocol == "bgp":
             if len(self._contents["bgp_address_family"]) > 0:
                 self._contents["bgp_address_family"][0].insert(
@@ -269,6 +268,7 @@ class RouterConfigFile:
                 protocol = "bgp"
 
         if protocol == "ospf":
+            assert next_hop is not None
             interface = next_hop.interface
             if interface not in self._contents["filter"]:
                 filter_name = f"filter_{len(self._contents['filter']) + 1}"
@@ -283,6 +283,7 @@ class RouterConfigFile:
                 0, _Line(f"ip prefix-list {filter_name} deny {prefix}\n")
             )
         elif protocol == "bgp":
+            assert neighbor is not None
             if neighbor not in self._contents["filter"]:
                 filter_no = len(self._contents["filter"]) + 1
                 self._contents["bgp"].append(
