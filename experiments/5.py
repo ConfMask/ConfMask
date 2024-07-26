@@ -88,6 +88,7 @@ def run_network(network, target, progress, task):
 
     result = sum(all_num_paths) / len(all_num_paths)
     _display(description=f"[bold green]Done[/bold green] | {result=:.3f}")
+    bf.delete_snapshot(target)
     return result
 
 

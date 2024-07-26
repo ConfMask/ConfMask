@@ -39,6 +39,7 @@ def run_network(network, algorithm, target, progress, task):
         topology = bf.q.layer3Edges().answer().frame()
         _display(description="Processing...")
         _, _, _, _, _, nx_graph = analyze_topology(topology)
+        bf.delete_snapshot(ver)
         return nx.average_clustering(nx_graph)
 
     _display(network=f"[{network}/Original]")

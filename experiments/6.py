@@ -39,6 +39,7 @@ def run_network(network, algorithm, target, progress, task):
         topology = bf.q.layer3Edges().answer().frame()
         _display(description="Processing...")
         _, _, _, _, _, nx_graph = analyze_topology(topology)
+        bf.delete_snapshot(ver)
         return Counter(d for _, d in nx_graph.degree()).most_common()[-1]
 
     _display(network=f"[{network}/Original]")

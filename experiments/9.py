@@ -286,6 +286,7 @@ def _verify_extracted_specs(target_dir, specs, _display):
         _display(details=f"({n_done}/{n_total})")
 
     _display(details="")
+    bf.delete_snapshot("test")
     return holds_specs, holds_not_specs
 
 
@@ -309,6 +310,7 @@ def _extract_prefixes(target_dir):
         for prefixes in interfaces["All_Prefixes"]
         for prefix in prefixes
     )
+    bf.delete_snapshot("test")
 
     return host_prefixes, config_prefixes
 

@@ -240,6 +240,9 @@ class _Algorithm:
         self._H_networks = H_networks
         self._fake_interfaces = fake_interfaces
 
+        # Manually remove the snapshot of the original network
+        bf.delete_snapshot(f"{self.network}-{ORIGIN_NAME}")
+
     def fix_routes(self):
         """Fix the routes.
 
@@ -389,6 +392,7 @@ class ConfMask(_Algorithm):
                 )
             self._display(details="")
 
+        bf.delete_snapshot(f"{self.network}-{self.target_name}")
         return f"[bold green]Done[/bold green] in {n_iteration} iterations"
 
 
@@ -575,6 +579,7 @@ class Strawman2(_Algorithm):
             for _, rcf in self._R_map.values():
                 rcf.emit(self._target_dir / ROUTERS_SUBDIR)
 
+        bf.delete_snapshot(f"{self.network}-{self.target_name}")
         return f"[bold green]Done[/bold green] in {n_iteration} iterations"
 
 

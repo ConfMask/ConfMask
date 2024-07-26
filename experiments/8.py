@@ -130,6 +130,7 @@ def run_network(network, algorithm, target, progress, task):
             _display(details=f"({n_done}/{n_total})")
         _display(details="")
 
+        bf.delete_snapshot(ver)
         return fd_tree
 
     _display(network=f"[{network}/Original]")
