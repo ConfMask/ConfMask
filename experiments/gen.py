@@ -240,9 +240,6 @@ class _Algorithm:
         self._H_networks = H_networks
         self._fake_interfaces = fake_interfaces
 
-        # Manually remove the snapshot of the original network
-        bf.delete_snapshot(f"{self.network}-{ORIGIN_NAME}")
-
     def fix_routes(self):
         """Fix the routes.
 
@@ -285,6 +282,10 @@ class _Algorithm:
         self.preprocessing()
         message = self.fix_routes()
         self.output(message)
+
+        # Manually remove the snapshot of the original network; this must be done in the
+        # end in case any previous step relying on that snapshot
+        bf.delete_snapshot(f"{self.network}-{ORIGIN_NAME}")
 
 
 class ConfMask(_Algorithm):
