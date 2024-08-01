@@ -163,7 +163,11 @@ def display_progress(
     ) as progress:
         tasks = {
             network: progress.add_task(
-                "[yellow]Skipped" if network in skipped_networks else "(queued)",
+                (
+                    "[yellow]Skipped (use -f to rerun and overwrite)"
+                    if network in skipped_networks
+                    else "(queued)"
+                ),
                 start=False,
                 total=None,
                 network=f"[{network}]",

@@ -1,5 +1,5 @@
 """
-TODO
+IP-related utilities.
 """
 
 _used_ips = set()

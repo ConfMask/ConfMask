@@ -1,5 +1,5 @@
 """
-TODO
+Utility functions.
 """
 
 from collections import defaultdict

@@ -283,6 +283,7 @@ class _Algorithm:
         message = self.fix_routes()
         self.output(message)
 
+
 class ConfMask(_Algorithm):
     """The main ConfMask anonymization algorithm."""
 
