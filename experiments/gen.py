@@ -283,11 +283,6 @@ class _Algorithm:
         message = self.fix_routes()
         self.output(message)
 
-        # Manually remove the snapshot of the original network; this must be done in the
-        # end in case any previous step relying on that snapshot
-        bf.delete_snapshot(f"{self.network}-{ORIGIN_NAME}")
-
-
 class ConfMask(_Algorithm):
     """The main ConfMask anonymization algorithm."""
 
@@ -298,6 +293,8 @@ class ConfMask(_Algorithm):
         )
 
     def fix_routes(self):
+        bf.delete_snapshot(f"{self.network}-{ORIGIN_NAME}")  # No longer needed
+
         n_iteration, diff_flag = 0, True
         host_rib, rib_map = _get_host_rib(self._G, self._H_networks, self._display)
 
@@ -407,6 +404,8 @@ class Strawman1(_Algorithm):
         )
 
     def fix_routes(self):
+        bf.delete_snapshot(f"{self.network}-{ORIGIN_NAME}")  # No longer needed
+
         self._display(description="Adding filters...")
         for r in self._R:
             for fake_interface_name, remote_ip in self._fake_interfaces[r]:
@@ -465,6 +464,8 @@ class Strawman2(_Algorithm):
             paths_mem = [[hop.node for hop in path.hops[:-1]] for path in trace_info]
             origin_traces[src_gw][dst_gw] = paths_mem
         self._display(details="")
+
+        bf.delete_snapshot(f"{self.network}-{ORIGIN_NAME}")  # No longer needed
 
         n_iteration, diff_flag = 0, True
         while diff_flag:
