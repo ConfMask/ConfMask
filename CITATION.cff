@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+authors:
+  - family-names: Wang
+    given-names: Yuejie
+  - family-names: Men
+    given-names: Qiutong
+  - family-names: Xiao
+    given-names: Yao
+  - family-names: Chen
+    given-names: Yongting
+  - family-names: Liu
+    given-names: Guyue
+title: "ConfMask: Enabling Privacy-Preserving Configuration Sharing via Anonymization"
+date-released: 2024-08-04
+conference:
+  name: "ACM SIGCOMM 2024 Conference"
+  acronym: "ACM SIGCOMM '24"
+  place: "Sydney, NSW, Australia"
+  date: "August 4–8, 2024"
+  organization: "ACM"
+publisher: "ACM"
+place: "New York, NY, USA"
+doi: "10.1145/3651890.3672217"
+url: "https://doi.org/10.1145/3651890.3672217"
